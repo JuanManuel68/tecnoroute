@@ -1,0 +1,156 @@
+import axios from 'axios';
+
+// Create axios instance with default config
+const apiService = axios.create({
+  baseURL: process.env.REACT_APP_API_URL || 'http://localhost:8000',
+  timeout: 10000,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+// Request interceptor to add auth token if available
+apiService.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('authToken');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// Response interceptor for error handling
+apiService.interceptors.response.use(
+  (response) => {
+    return response;
+  },
+  (error) => {
+    if (error.response?.status === 401) {
+      // Token expired or invalid, remove from storage
+      localStorage.removeItem('authToken');
+      // Redirect to login page if needed
+      // window.location.href = '/login';
+    }
+    
+    // Log error for debugging
+    console.error('API Error:', {
+      message: error.message,
+      status: error.response?.status,
+      data: error.response?.data,
+      config: error.config,
+    });
+    
+    return Promise.reject(error);
+  }
+);
+
+// API endpoints
+const API_ENDPOINTS = {
+  // Clientes
+  clientes: '/api/clientes/',
+  clientesActivos: '/api/clientes/activos/',
+  
+  // Conductores
+  conductores: '/api/conductores/',
+  conductoresDisponibles: '/api/conductores/disponibles/',
+  
+  // Vehículos
+  vehiculos: '/api/vehiculos/',
+  vehiculosDisponibles: '/api/vehiculos/disponibles/',
+  
+  // Rutas
+  rutas: '/api/rutas/',
+  rutasActivas: '/api/rutas/activas/',
+  
+  // Envíos
+  envios: '/api/envios/',
+  enviosPendientes: '/api/envios/pendientes/',
+  enviosEnTransito: '/api/envios/en_transito/',
+  buscarPorGuia: '/api/envios/buscar_por_guia/',
+  
+  // Seguimientos
+  seguimientos: '/api/seguimientos/',
+};
+
+// Helper functions for common API operations
+export const clientesAPI = {
+  getAll: () => apiService.get(API_ENDPOINTS.clientes),
+  getById: (id) => apiService.get(`${API_ENDPOINTS.clientes}${id}/`),
+  create: (data) => apiService.post(API_ENDPOINTS.clientes, data),
+  update: (id, data) => apiService.patch(`${API_ENDPOINTS.clientes}${id}/`, data),
+  delete: (id) => apiService.delete(`${API_ENDPOINTS.clientes}${id}/`),
+  getActivos: () => apiService.get(API_ENDPOINTS.clientesActivos),
+};
+
+export const conductoresAPI = {
+  getAll: () => apiService.get(API_ENDPOINTS.conductores),
+  getById: (id) => apiService.get(`${API_ENDPOINTS.conductores}${id}/`),
+  create: (data) => apiService.post(API_ENDPOINTS.conductores, data),
+  update: (id, data) => apiService.patch(`${API_ENDPOINTS.conductores}${id}/`, data),
+  delete: (id) => apiService.delete(`${API_ENDPOINTS.conductores}${id}/`),
+  getDisponibles: () => apiService.get(API_ENDPOINTS.conductoresDisponibles),
+  cambiarEstado: (id, estado) => apiService.post(`${API_ENDPOINTS.conductores}${id}/cambiar_estado/`, { estado }),
+};
+
+export const vehiculosAPI = {
+  getAll: () => apiService.get(API_ENDPOINTS.vehiculos),
+  getById: (id) => apiService.get(`${API_ENDPOINTS.vehiculos}${id}/`),
+  create: (data) => apiService.post(API_ENDPOINTS.vehiculos, data),
+  update: (id, data) => apiService.patch(`${API_ENDPOINTS.vehiculos}${id}/`, data),
+  delete: (id) => apiService.delete(`${API_ENDPOINTS.vehiculos}${id}/`),
+  getDisponibles: () => apiService.get(API_ENDPOINTS.vehiculosDisponibles),
+  cambiarEstado: (id, estado) => apiService.post(`${API_ENDPOINTS.vehiculos}${id}/cambiar_estado/`, { estado }),
+};
+
+export const rutasAPI = {
+  getAll: () => apiService.get(API_ENDPOINTS.rutas),
+  getById: (id) => apiService.get(`${API_ENDPOINTS.rutas}${id}/`),
+  create: (data) => apiService.post(API_ENDPOINTS.rutas, data),
+  update: (id, data) => apiService.patch(`${API_ENDPOINTS.rutas}${id}/`, data),
+  delete: (id) => apiService.delete(`${API_ENDPOINTS.rutas}${id}/`),
+  getActivas: () => apiService.get(API_ENDPOINTS.rutasActivas),
+};
+
+export const enviosAPI = {
+  getAll: () => apiService.get(API_ENDPOINTS.envios),
+  getById: (id) => apiService.get(`${API_ENDPOINTS.envios}${id}/`),
+  create: (data) => apiService.post(API_ENDPOINTS.envios, data),
+  update: (id, data) => apiService.patch(`${API_ENDPOINTS.envios}${id}/`, data),
+  delete: (id) => apiService.delete(`${API_ENDPOINTS.envios}${id}/`),
+  getPendientes: () => apiService.get(API_ENDPOINTS.enviosPendientes),
+  getEnTransito: () => apiService.get(API_ENDPOINTS.enviosEnTransito),
+  buscarPorGuia: (numeroGuia) => apiService.get(`${API_ENDPOINTS.buscarPorGuia}?numero_guia=${numeroGuia}`),
+  cambiarEstado: (id, data) => apiService.post(`${API_ENDPOINTS.envios}${id}/cambiar_estado/`, data),
+  asignarVehiculoConductor: (id, data) => apiService.post(`${API_ENDPOINTS.envios}${id}/asignar_vehiculo_conductor/`, data),
+  getSeguimiento: (id) => apiService.get(`${API_ENDPOINTS.envios}${id}/seguimiento/`),
+};
+
+export const seguimientosAPI = {
+  getAll: () => apiService.get(API_ENDPOINTS.seguimientos),
+  getByEnvio: (envioId) => apiService.get(`${API_ENDPOINTS.seguimientos}?envio=${envioId}`),
+  create: (data) => apiService.post(API_ENDPOINTS.seguimientos, data),
+};
+
+// Utility functions
+export const handleApiError = (error) => {
+  if (error.response) {
+    // Server responded with error status
+    const message = error.response.data?.message || 
+                   error.response.data?.detail || 
+                   `Error ${error.response.status}: ${error.response.statusText}`;
+    return message;
+  } else if (error.request) {
+    // Request was made but no response received
+    return 'No se pudo conectar con el servidor. Verifica tu conexión a internet.';
+  } else {
+    // Something else happened
+    return error.message || 'Ha ocurrido un error inesperado.';
+  }
+};
+
+// Export default axios instance for direct use if needed
+export default apiService;

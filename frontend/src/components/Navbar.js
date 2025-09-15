@@ -8,6 +8,9 @@ import {
   Menu,
   MenuItem,
   Box,
+  Avatar,
+  Tooltip,
+  Divider,
 } from '@mui/material';
 import {
   LocalShipping as LocalShippingIcon,
@@ -17,13 +20,18 @@ import {
   Route as RouteIcon,
   Assignment as AssignmentIcon,
   TrackChanges as TrackChangesIcon,
+  Receipt as ReceiptIcon,
   Menu as MenuIcon,
+  ExitToApp as ExitToAppIcon,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 const Navbar = () => {
   const [anchorEl, setAnchorEl] = useState(null);
+  const [userMenuAnchorEl, setUserMenuAnchorEl] = useState(null);
   const navigate = useNavigate();
+  const { user, logout } = useAuth();
 
   const handleMenuClick = (event) => {
     setAnchorEl(event.currentTarget);
@@ -38,14 +46,29 @@ const Navbar = () => {
     handleMenuClose();
   };
 
+  const handleUserMenuClick = (event) => {
+    setUserMenuAnchorEl(event.currentTarget);
+  };
+
+  const handleUserMenuClose = () => {
+    setUserMenuAnchorEl(null);
+  };
+
+  const handleLogout = () => {
+    logout();
+    handleUserMenuClose();
+    navigate('/');
+  };
+
   const menuItems = [
-    { label: 'Panel Principal', path: '/', icon: <DashboardIcon /> },
-    { label: 'Clientes', path: '/clientes', icon: <PeopleIcon /> },
-    { label: 'Conductores', path: '/conductores', icon: <PeopleIcon /> },
-    { label: 'Vehículos', path: '/vehiculos', icon: <DirectionsCarIcon /> },
-    { label: 'Rutas', path: '/rutas', icon: <RouteIcon /> },
-    { label: 'Envíos', path: '/envios', icon: <AssignmentIcon /> },
-    { label: 'Seguimiento', path: '/seguimiento', icon: <TrackChangesIcon /> },
+    { label: 'Panel Principal', path: '/admin', icon: <DashboardIcon /> },
+    { label: 'Pedidos', path: '/admin/pedidos', icon: <ReceiptIcon /> },
+    { label: 'Clientes', path: '/admin/clientes', icon: <PeopleIcon /> },
+    { label: 'Conductores', path: '/admin/conductores', icon: <PeopleIcon /> },
+    { label: 'Vehículos', path: '/admin/vehiculos', icon: <DirectionsCarIcon /> },
+    { label: 'Rutas', path: '/admin/rutas', icon: <RouteIcon /> },
+    { label: 'Envíos', path: '/admin/envios', icon: <AssignmentIcon /> },
+    { label: 'Seguimiento', path: '/admin/seguimiento', icon: <TrackChangesIcon /> },
   ];
 
   return (
@@ -56,13 +79,13 @@ const Navbar = () => {
           variant="h6"
           component="div"
           sx={{ flexGrow: 1, cursor: 'pointer' }}
-          onClick={() => navigate('/')}
+          onClick={() => navigate('/admin')}
         >
-          TecnoRoute - Sistema de Transporte y Logística
+          TecnoRoute - Panel Administrativo
         </Typography>
 
         {/* Desktop Menu */}
-        <Box sx={{ display: { xs: 'none', md: 'flex' } }}>
+        <Box sx={{ display: { xs: 'none', md: 'flex' }, alignItems: 'center' }}>
           {menuItems.map((item) => (
             <Button
               key={item.path}
@@ -74,6 +97,49 @@ const Navbar = () => {
               {item.label}
             </Button>
           ))}
+          
+          {/* User Menu */}
+          <Box sx={{ ml: 2, display: 'flex', alignItems: 'center' }}>
+            <Tooltip title={`Usuario: ${user?.name || 'Administrador'}`}>
+              <IconButton
+                size="large"
+                color="inherit"
+                onClick={handleUserMenuClick}
+              >
+                <Avatar sx={{ width: 32, height: 32, bgcolor: 'secondary.main' }}>
+                  {user?.name?.charAt(0).toUpperCase() || 'A'}
+                </Avatar>
+              </IconButton>
+            </Tooltip>
+            <Menu
+              anchorEl={userMenuAnchorEl}
+              anchorOrigin={{
+                vertical: 'bottom',
+                horizontal: 'right',
+              }}
+              keepMounted
+              transformOrigin={{
+                vertical: 'top',
+                horizontal: 'right',
+              }}
+              open={Boolean(userMenuAnchorEl)}
+              onClose={handleUserMenuClose}
+            >
+              <MenuItem disabled>
+                <Box>
+                  <Typography variant="subtitle2">{user?.name}</Typography>
+                  <Typography variant="caption" color="textSecondary">
+                    {user?.email} (Administrador)
+                  </Typography>
+                </Box>
+              </MenuItem>
+              <Divider />
+              <MenuItem onClick={handleLogout}>
+                <ExitToAppIcon sx={{ mr: 2 }} />
+                Cerrar Sesión
+              </MenuItem>
+            </Menu>
+          </Box>
         </Box>
 
         {/* Mobile Menu */}
@@ -111,6 +177,11 @@ const Navbar = () => {
                 </Box>
               </MenuItem>
             ))}
+            <Divider />
+            <MenuItem onClick={handleLogout}>
+              <ExitToAppIcon sx={{ mr: 2 }} />
+              <Typography sx={{ ml: 2 }}>Cerrar Sesión</Typography>
+            </MenuItem>
           </Menu>
         </Box>
       </Toolbar>

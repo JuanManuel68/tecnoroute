@@ -6,11 +6,12 @@ from django_filters.rest_framework import DjangoFilterBackend
 from django.db.models import Q
 from datetime import datetime, timedelta
 
-from .models import Cliente, Conductor, Vehiculo, Ruta, Envio, SeguimientoEnvio
+from .models import Cliente, Conductor, Vehiculo, Ruta, Envio, SeguimientoEnvio, PedidoTransporte
 from .serializers import (
     ClienteSerializer, ConductorSerializer, VehiculoSerializer, 
     RutaSerializer, EnvioSerializer, EnvioCreateSerializer, 
-    EnvioListSerializer, SeguimientoEnvioSerializer
+    EnvioListSerializer, SeguimientoEnvioSerializer,
+    PedidoTransporteSerializer, PedidoTransporteCreateSerializer
 )
 
 
@@ -263,3 +264,201 @@ class SeguimientoEnvioViewSet(viewsets.ModelViewSet):
     filterset_fields = ['envio', 'estado']
     ordering_fields = ['fecha_hora']
     ordering = ['-fecha_hora']
+
+
+class PedidoTransporteViewSet(viewsets.ModelViewSet):
+    """API endpoint para gestionar pedidos de transporte con roles diferenciados"""
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_fields = ['estado', 'cliente', 'conductor', 'vehiculo']
+    search_fields = ['numero_pedido', 'descripcion', 'cliente__nombre']
+    ordering_fields = ['fecha_creacion', 'fecha_recogida_deseada']
+    ordering = ['-fecha_creacion']
+
+    def get_queryset(self):
+        """Filtrar pedidos según el rol del usuario"""
+        user = self.request.user
+        if not user.is_authenticated:
+            return PedidoTransporte.objects.none()
+        
+        try:
+            profile = user.userprofile
+        except:
+            from user_management.models import UserProfile
+            profile = UserProfile.objects.create(
+                user=user, 
+                role='admin' if user.is_superuser else 'customer'
+            )
+        
+        # Admin puede ver todos los pedidos
+        if profile.role == 'admin':
+            return PedidoTransporte.objects.select_related(
+                'usuario', 'cliente', 'conductor', 'ruta', 'vehiculo'
+            ).all()
+        
+        # Conductor puede ver pedidos asignados a él
+        elif profile.role == 'conductor':
+            try:
+                conductor = Conductor.objects.get(email=user.email)
+                return PedidoTransporte.objects.filter(
+                    conductor=conductor
+                ).select_related('usuario', 'cliente', 'ruta', 'vehiculo')
+            except Conductor.DoesNotExist:
+                return PedidoTransporte.objects.none()
+        
+        # Usuario normal solo puede ver sus propios pedidos
+        else:
+            return PedidoTransporte.objects.filter(
+                usuario=user
+            ).select_related('cliente', 'conductor', 'ruta', 'vehiculo')
+
+    def get_serializer_class(self):
+        """Usar diferentes serializers según la acción"""
+        if self.action == 'create':
+            return PedidoTransporteCreateSerializer
+        return PedidoTransporteSerializer
+
+    @action(detail=False, methods=['get'])
+    def mis_pedidos(self, request):
+        """Obtener pedidos del usuario actual"""
+        pedidos = PedidoTransporte.objects.filter(
+            usuario=request.user
+        ).select_related('cliente', 'conductor', 'ruta', 'vehiculo')
+        serializer = self.get_serializer(pedidos, many=True)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['get'])
+    def estadisticas(self, request):
+        """Obtener estadísticas de pedidos (solo admin)"""
+        user = request.user
+        try:
+            profile = user.userprofile
+            if profile.role != 'admin':
+                return Response(
+                    {'error': 'No autorizado'}, 
+                    status=status.HTTP_403_FORBIDDEN
+                )
+        except:
+            return Response(
+                {'error': 'Perfil de usuario no encontrado'}, 
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        total_pedidos = PedidoTransporte.objects.count()
+        pendientes = PedidoTransporte.objects.filter(estado='pendiente').count()
+        asignados = PedidoTransporte.objects.filter(estado='asignado').count()
+        en_ruta = PedidoTransporte.objects.filter(estado='en_ruta').count()
+        entregados = PedidoTransporte.objects.filter(estado='entregado').count()
+        cancelados = PedidoTransporte.objects.filter(estado='cancelado').count()
+        
+        return Response({
+            'total_pedidos': total_pedidos,
+            'pendientes': pendientes,
+            'asignados': asignados,
+            'en_ruta': en_ruta,
+            'entregados': entregados,
+            'cancelados': cancelados
+        })
+
+    @action(detail=True, methods=['post'])
+    def asignar_conductor(self, request, pk=None):
+        """Asignar conductor a un pedido (solo admin)"""
+        user = request.user
+        try:
+            profile = user.userprofile
+            if profile.role != 'admin':
+                return Response(
+                    {'error': 'No autorizado'}, 
+                    status=status.HTTP_403_FORBIDDEN
+                )
+        except:
+            return Response(
+                {'error': 'Perfil no encontrado'}, 
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        pedido = self.get_object()
+        conductor_id = request.data.get('conductor_id')
+        vehiculo_id = request.data.get('vehiculo_id')
+        ruta_id = request.data.get('ruta_id')
+        
+        try:
+            if conductor_id:
+                conductor = Conductor.objects.get(id=conductor_id, activo=True)
+                pedido.conductor = conductor
+            
+            if vehiculo_id:
+                vehiculo = Vehiculo.objects.get(id=vehiculo_id, activo=True)
+                pedido.vehiculo = vehiculo
+            
+            if ruta_id:
+                ruta = Ruta.objects.get(id=ruta_id, activa=True)
+                pedido.ruta = ruta
+            
+            if conductor_id or vehiculo_id or ruta_id:
+                pedido.estado = 'asignado'
+                pedido.save()
+            
+            serializer = self.get_serializer(pedido)
+            return Response(serializer.data)
+            
+        except (Conductor.DoesNotExist, Vehiculo.DoesNotExist, Ruta.DoesNotExist):
+            return Response(
+                {'error': 'Recurso no encontrado'}, 
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+    @action(detail=True, methods=['post'])
+    def cambiar_estado(self, request, pk=None):
+        """Cambiar estado del pedido"""
+        pedido = self.get_object()
+        nuevo_estado = request.data.get('estado')
+        
+        # Verificar permisos
+        user = request.user
+        try:
+            profile = user.userprofile
+        except:
+            return Response(
+                {'error': 'Perfil no encontrado'}, 
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # Solo admin o conductor asignado pueden cambiar estado
+        if profile.role == 'admin':
+            pass  # Admin puede cambiar cualquier estado
+        elif profile.role == 'conductor':
+            try:
+                conductor = Conductor.objects.get(email=user.email)
+                if pedido.conductor != conductor:
+                    return Response(
+                        {'error': 'Solo puedes cambiar el estado de tus pedidos asignados'}, 
+                        status=status.HTTP_403_FORBIDDEN
+                    )
+            except Conductor.DoesNotExist:
+                return Response(
+                    {'error': 'Conductor no encontrado'}, 
+                    status=status.HTTP_404_NOT_FOUND
+                )
+        else:
+            # Usuarios normales no pueden cambiar estados
+            return Response(
+                {'error': 'No autorizado para cambiar estado'}, 
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        if nuevo_estado in dict(PedidoTransporte.ESTADO_CHOICES):
+            pedido.estado = nuevo_estado
+            
+            # Actualizar fechas según el estado
+            if nuevo_estado == 'entregado' and not pedido.fecha_entrega_estimada:
+                from datetime import datetime
+                pedido.fecha_entrega_estimada = datetime.now()
+            
+            pedido.save()
+            serializer = self.get_serializer(pedido)
+            return Response(serializer.data)
+        else:
+            return Response(
+                {'error': 'Estado no válido'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )

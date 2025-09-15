@@ -74,6 +74,11 @@ const API_ENDPOINTS = {
   
   // Seguimientos
   seguimientos: '/api/seguimientos/',
+  
+  // Pedidos
+  pedidos: '/api/pedidos/',
+  pedidosEstadisticas: '/api/pedidos/estadisticas/',
+  pedidosRecientes: '/api/pedidos/recientes/',
 };
 
 // Helper functions for common API operations
@@ -133,6 +138,17 @@ export const seguimientosAPI = {
   getAll: () => apiService.get(API_ENDPOINTS.seguimientos),
   getByEnvio: (envioId) => apiService.get(`${API_ENDPOINTS.seguimientos}?envio=${envioId}`),
   create: (data) => apiService.post(API_ENDPOINTS.seguimientos, data),
+};
+
+export const pedidosAPI = {
+  getAll: () => apiService.get(API_ENDPOINTS.pedidos),
+  getById: (id) => apiService.get(`${API_ENDPOINTS.pedidos}${id}/`),
+  create: (data) => apiService.post(API_ENDPOINTS.pedidos, data),
+  update: (id, data) => apiService.patch(`${API_ENDPOINTS.pedidos}${id}/`, data),
+  delete: (id) => apiService.delete(`${API_ENDPOINTS.pedidos}${id}/`),
+  cambiarEstado: (id, estado) => apiService.patch(`${API_ENDPOINTS.pedidos}${id}/cambiar_estado/`, { estado }),
+  getEstadisticas: () => apiService.get(API_ENDPOINTS.pedidosEstadisticas),
+  getRecientes: (limit = 10) => apiService.get(`${API_ENDPOINTS.pedidosRecientes}?limit=${limit}`),
 };
 
 // Utility functions

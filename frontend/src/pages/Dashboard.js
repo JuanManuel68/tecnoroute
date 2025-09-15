@@ -24,9 +24,11 @@ import {
   Warning as WarningIcon,
   CheckCircle as CheckCircleIcon,
 } from '@mui/icons-material';
-import apiService from '../services/apiService';
+import apiService, { pedidosAPI } from '../services/apiService';
+import { useAuth } from '../context/AuthContext';
 
 const Dashboard = () => {
+  const { user, isAdmin } = useAuth();
   const [stats, setStats] = useState({
     totalClientes: 0,
     totalConductores: 0,
@@ -36,53 +38,152 @@ const Dashboard = () => {
     enviosPendientes: 0,
     enviosEnTransito: 0,
     enviosEntregados: 0,
+    // Stats para pedidos (admin)
+    totalPedidos: 0,
+    totalIngresos: 0,
+    pedidosHoy: 0,
+    pedidosSemana: 0,
+    pedidosMes: 0,
+    pedidosPendientes: 0,
+    pedidosConfirmados: 0,
+    pedidosEnviados: 0,
+    pedidosEntregados: 0,
+    pedidosCancelados: 0,
   });
   const [loading, setLoading] = useState(true);
   const [enviosRecientes, setEnviosRecientes] = useState([]);
+  const [pedidosRecientes, setPedidosRecientes] = useState([]);
 
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
         setLoading(true);
         
-        // Fetch basic statistics
-        const [
-          clientesRes,
-          conductoresRes,
-          vehiculosRes,
-          rutasRes,
-          enviosRes,
-          enviosPendientesRes,
-          enviosTransitoRes,
-        ] = await Promise.all([
-          apiService.get('/api/clientes/'),
-          apiService.get('/api/conductores/'),
-          apiService.get('/api/vehiculos/'),
-          apiService.get('/api/rutas/'),
-          apiService.get('/api/envios/'),
-          apiService.get('/api/envios/pendientes/'),
-          apiService.get('/api/envios/en_transito/'),
-        ]);
+        if (isAdmin()) {
+          // Si es admin, cargar datos de pedidos
+          try {
+            const [
+              estadisticasPedidos,
+              pedidosRecientesRes,
+              clientesRes,
+              conductoresRes,
+              vehiculosRes,
+              rutasRes,
+            ] = await Promise.all([
+              pedidosAPI.getEstadisticas(),
+              pedidosAPI.getRecientes(10),
+              apiService.get('/api/clientes/'),
+              apiService.get('/api/conductores/'),
+              apiService.get('/api/vehiculos/'),
+              apiService.get('/api/rutas/'),
+            ]);
 
-        // Calculate delivered shipments
-        const enviosEntregados = enviosRes.data.filter(envio => envio.estado === 'entregado').length;
+            setStats({
+              // Datos básicos de logística
+              totalClientes: clientesRes.data.length,
+              totalConductores: conductoresRes.data.length,
+              totalVehiculos: vehiculosRes.data.length,
+              totalRutas: rutasRes.data.length,
+              // Datos de pedidos
+              totalPedidos: estadisticasPedidos.data.total_pedidos || 0,
+              totalIngresos: estadisticasPedidos.data.total_ingresos || 0,
+              pedidosHoy: estadisticasPedidos.data.pedidos_hoy || 0,
+              pedidosSemana: estadisticasPedidos.data.pedidos_semana || 0,
+              pedidosMes: estadisticasPedidos.data.pedidos_mes || 0,
+              pedidosPendientes: estadisticasPedidos.data.pedidos_pendientes || 0,
+              pedidosConfirmados: estadisticasPedidos.data.pedidos_confirmados || 0,
+              pedidosEnviados: estadisticasPedidos.data.pedidos_enviados || 0,
+              pedidosEntregados: estadisticasPedidos.data.pedidos_entregados || 0,
+              pedidosCancelados: estadisticasPedidos.data.pedidos_cancelados || 0,
+              // Reset envios stats for admin
+              totalEnvios: 0,
+              enviosPendientes: 0,
+              enviosEnTransito: 0,
+              enviosEntregados: 0,
+            });
 
-        setStats({
-          totalClientes: clientesRes.data.length,
-          totalConductores: conductoresRes.data.length,
-          totalVehiculos: vehiculosRes.data.length,
-          totalRutas: rutasRes.data.length,
-          totalEnvios: enviosRes.data.length,
-          enviosPendientes: enviosPendientesRes.data.length,
-          enviosEnTransito: enviosTransitoRes.data.length,
-          enviosEntregados: enviosEntregados,
-        });
+            setPedidosRecientes(pedidosRecientesRes.data || []);
+          } catch (adminError) {
+            console.error('Error cargando datos de admin:', adminError);
+            // Fallback: cargar solo datos básicos
+            try {
+              const [
+                clientesRes,
+                conductoresRes,
+                vehiculosRes,
+                rutasRes,
+              ] = await Promise.all([
+                apiService.get('/api/clientes/'),
+                apiService.get('/api/conductores/'),
+                apiService.get('/api/vehiculos/'),
+                apiService.get('/api/rutas/'),
+              ]);
 
-        // Get recent shipments (last 10)
-        const enviosOrdenados = enviosRes.data
-          .sort((a, b) => new Date(b.fecha_creacion) - new Date(a.fecha_creacion))
-          .slice(0, 10);
-        setEnviosRecientes(enviosOrdenados);
+              setStats({
+                totalClientes: clientesRes.data.length,
+                totalConductores: conductoresRes.data.length,
+                totalVehiculos: vehiculosRes.data.length,
+                totalRutas: rutasRes.data.length,
+                totalPedidos: 0,
+                totalIngresos: 0,
+                pedidosHoy: 0,
+                pedidosSemana: 0,
+                pedidosMes: 0,
+                pedidosPendientes: 0,
+                pedidosConfirmados: 0,
+                pedidosEnviados: 0,
+                pedidosEntregados: 0,
+                pedidosCancelados: 0,
+                totalEnvios: 0,
+                enviosPendientes: 0,
+                enviosEnTransito: 0,
+                enviosEntregados: 0,
+              });
+            } catch (fallbackError) {
+              console.error('Error en fallback:', fallbackError);
+            }
+          }
+        } else {
+          // Si no es admin, cargar datos de envíos
+          const [
+            clientesRes,
+            conductoresRes,
+            vehiculosRes,
+            rutasRes,
+            enviosRes,
+            enviosPendientesRes,
+            enviosTransitoRes,
+          ] = await Promise.all([
+            apiService.get('/api/clientes/'),
+            apiService.get('/api/conductores/'),
+            apiService.get('/api/vehiculos/'),
+            apiService.get('/api/rutas/'),
+            apiService.get('/api/envios/'),
+            apiService.get('/api/envios/pendientes/'),
+            apiService.get('/api/envios/en_transito/'),
+          ]);
+
+          // Calculate delivered shipments
+          const enviosEntregados = enviosRes.data.filter(envio => envio.estado === 'entregado').length;
+
+          setStats(prevStats => ({
+            ...prevStats,
+            totalClientes: clientesRes.data.length,
+            totalConductores: conductoresRes.data.length,
+            totalVehiculos: vehiculosRes.data.length,
+            totalRutas: rutasRes.data.length,
+            totalEnvios: enviosRes.data.length,
+            enviosPendientes: enviosPendientesRes.data.length,
+            enviosEnTransito: enviosTransitoRes.data.length,
+            enviosEntregados: enviosEntregados,
+          }));
+
+          // Get recent shipments (last 10)
+          const enviosOrdenados = enviosRes.data
+            .sort((a, b) => new Date(b.fecha_creacion) - new Date(a.fecha_creacion))
+            .slice(0, 10);
+          setEnviosRecientes(enviosOrdenados);
+        }
 
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
@@ -91,8 +192,10 @@ const Dashboard = () => {
       }
     };
 
-    fetchDashboardData();
-  }, []);
+    if (user) {
+      fetchDashboardData();
+    }
+  }, [user, isAdmin]);
 
   const getEstadoColor = (estado) => {
     switch (estado) {
@@ -104,12 +207,74 @@ const Dashboard = () => {
         return 'success';
       case 'cancelado':
         return 'error';
+      case 'confirmado':
+        return 'info';
+      case 'enviado':
+        return 'primary';
       default:
         return 'default';
     }
   };
 
-  const statCards = [
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('es-ES', {
+      style: 'currency',
+      currency: 'USD'
+    }).format(amount);
+  };
+
+  const statCards = isAdmin() ? [
+    // Tarjetas para Admin (Pedidos)
+    {
+      title: 'Total de Pedidos',
+      value: stats.totalPedidos,
+      icon: <AssignmentIcon fontSize="large" />,
+      color: '#1976d2',
+    },
+    {
+      title: 'Ingresos Totales',
+      value: formatCurrency(stats.totalIngresos),
+      icon: <TrendingUpIcon fontSize="large" />,
+      color: '#388e3c',
+    },
+    {
+      title: 'Pedidos Hoy',
+      value: stats.pedidosHoy,
+      icon: <LocalShippingIcon fontSize="large" />,
+      color: '#f57c00',
+    },
+    {
+      title: 'Pedidos Esta Semana',
+      value: stats.pedidosSemana,
+      icon: <TrendingUpIcon fontSize="large" />,
+      color: '#7b1fa2',
+    },
+    {
+      title: 'Pedidos Pendientes',
+      value: stats.pedidosPendientes,
+      icon: <WarningIcon fontSize="large" />,
+      color: '#f57c00',
+    },
+    {
+      title: 'Pedidos Confirmados',
+      value: stats.pedidosConfirmados,
+      icon: <CheckCircleIcon fontSize="large" />,
+      color: '#1976d2',
+    },
+    {
+      title: 'Pedidos Enviados',
+      value: stats.pedidosEnviados,
+      icon: <LocalShippingIcon fontSize="large" />,
+      color: '#303f9f',
+    },
+    {
+      title: 'Pedidos Entregados',
+      value: stats.pedidosEntregados,
+      icon: <CheckCircleIcon fontSize="large" />,
+      color: '#388e3c',
+    },
+  ] : [
+    // Tarjetas para otros usuarios (Envíos)
     {
       title: 'Total de Clientes',
       value: stats.totalClientes,
@@ -216,40 +381,78 @@ const Dashboard = () => {
           <Paper sx={{ p: 3 }}>
             <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
               <TrendingUpIcon sx={{ mr: 1 }} />
-              Envíos Recientes
+              {isAdmin() ? 'Pedidos Recientes' : 'Envíos Recientes'}
             </Typography>
-            {enviosRecientes.length > 0 ? (
-              <List>
-                {enviosRecientes.map((envio) => (
-                  <ListItem key={envio.id} divider>
-                    <ListItemIcon>
-                      <LocalShippingIcon />
-                    </ListItemIcon>
-                    <ListItemText
-                      primary={`${envio.numero_guia} - ${envio.cliente_nombre}`}
-                      secondary={
-                        <Box>
-                          <Typography variant="body2" color="textSecondary">
-                            {envio.ruta_info} • {envio.descripcion_carga}
-                          </Typography>
-                          <Typography variant="caption" color="textSecondary">
-                            Creado: {new Date(envio.fecha_creacion).toLocaleDateString('es-ES')}
-                          </Typography>
-                        </Box>
-                      }
-                    />
-                    <Chip
-                      label={envio.estado.replace('_', ' ').toUpperCase()}
-                      color={getEstadoColor(envio.estado)}
-                      size="small"
-                    />
-                  </ListItem>
-                ))}
-              </List>
+            {isAdmin() ? (
+              // Mostrar pedidos recientes para admin
+              pedidosRecientes.length > 0 ? (
+                <List>
+                  {pedidosRecientes.map((pedido) => (
+                    <ListItem key={pedido.id} divider>
+                      <ListItemIcon>
+                        <AssignmentIcon />
+                      </ListItemIcon>
+                      <ListItemText
+                        primary={`${pedido.numero_pedido} - ${pedido.usuario.username}`}
+                        secondary={
+                          <Box>
+                            <Typography variant="body2" color="textSecondary">
+                              Total: {formatCurrency(pedido.total)} • {pedido.items?.length || 0} productos
+                            </Typography>
+                            <Typography variant="caption" color="textSecondary">
+                              Creado: {new Date(pedido.fecha_creacion).toLocaleDateString('es-ES')}
+                            </Typography>
+                          </Box>
+                        }
+                      />
+                      <Chip
+                        label={pedido.estado.toUpperCase()}
+                        color={getEstadoColor(pedido.estado)}
+                        size="small"
+                      />
+                    </ListItem>
+                  ))}
+                </List>
+              ) : (
+                <Typography color="textSecondary">
+                  No hay pedidos recientes para mostrar.
+                </Typography>
+              )
             ) : (
-              <Typography color="textSecondary">
-                No hay envíos recientes para mostrar.
-              </Typography>
+              // Mostrar envíos recientes para otros usuarios
+              enviosRecientes.length > 0 ? (
+                <List>
+                  {enviosRecientes.map((envio) => (
+                    <ListItem key={envio.id} divider>
+                      <ListItemIcon>
+                        <LocalShippingIcon />
+                      </ListItemIcon>
+                      <ListItemText
+                        primary={`${envio.numero_guia} - ${envio.cliente_nombre}`}
+                        secondary={
+                          <Box>
+                            <Typography variant="body2" color="textSecondary">
+                              {envio.ruta_info} • {envio.descripcion_carga}
+                            </Typography>
+                            <Typography variant="caption" color="textSecondary">
+                              Creado: {new Date(envio.fecha_creacion).toLocaleDateString('es-ES')}
+                            </Typography>
+                          </Box>
+                        }
+                      />
+                      <Chip
+                        label={envio.estado.replace('_', ' ').toUpperCase()}
+                        color={getEstadoColor(envio.estado)}
+                        size="small"
+                      />
+                    </ListItem>
+                  ))}
+                </List>
+              ) : (
+                <Typography color="textSecondary">
+                  No hay envíos recientes para mostrar.
+                </Typography>
+              )
             )}
           </Paper>
         </Grid>
@@ -260,37 +463,80 @@ const Dashboard = () => {
               Resumen de Operaciones
             </Typography>
             <Box sx={{ mt: 2 }}>
-              <Typography variant="body1" sx={{ mb: 2 }}>
-                <strong>Estado del Sistema:</strong>
-              </Typography>
-              <Box sx={{ mb: 2 }}>
-                <Typography variant="body2" color="textSecondary">
-                  • {stats.totalClientes} clientes registrados
-                </Typography>
-                <Typography variant="body2" color="textSecondary">
-                  • {stats.totalConductores} conductores disponibles
-                </Typography>
-                <Typography variant="body2" color="textSecondary">
-                  • {stats.totalVehiculos} vehículos en flota
-                </Typography>
-                <Typography variant="body2" color="textSecondary">
-                  • {stats.totalRutas} rutas configuradas
-                </Typography>
-              </Box>
-              <Typography variant="body1" sx={{ mb: 1 }}>
-                <strong>Envíos del Día:</strong>
-              </Typography>
-              <Box>
-                <Typography variant="body2" sx={{ color: '#f57c00' }}>
-                  📋 {stats.enviosPendientes} pendientes
-                </Typography>
-                <Typography variant="body2" sx={{ color: '#1976d2' }}>
-                  🚛 {stats.enviosEnTransito} en tránsito
-                </Typography>
-                <Typography variant="body2" sx={{ color: '#388e3c' }}>
-                  ✅ {stats.enviosEntregados} entregados
-                </Typography>
-              </Box>
+              {isAdmin() ? (
+                // Resumen para admin (Pedidos)
+                <>
+                  <Typography variant="body1" sx={{ mb: 2 }}>
+                    <strong>Estado del Sistema:</strong>
+                  </Typography>
+                  <Box sx={{ mb: 2 }}>
+                    <Typography variant="body2" color="textSecondary">
+                      • {formatCurrency(stats.totalIngresos)} en ingresos totales
+                    </Typography>
+                    <Typography variant="body2" color="textSecondary">
+                      • {stats.totalPedidos} pedidos registrados
+                    </Typography>
+                    <Typography variant="body2" color="textSecondary">
+                      • {stats.pedidosHoy} pedidos hoy
+                    </Typography>
+                    <Typography variant="body2" color="textSecondary">
+                      • {stats.pedidosMes} pedidos este mes
+                    </Typography>
+                  </Box>
+                  <Typography variant="body1" sx={{ mb: 1 }}>
+                    <strong>Estado de Pedidos:</strong>
+                  </Typography>
+                  <Box>
+                    <Typography variant="body2" sx={{ color: '#f57c00' }}>
+                      📋 {stats.pedidosPendientes} pendientes
+                    </Typography>
+                    <Typography variant="body2" sx={{ color: '#1976d2' }}>
+                      ⚙️ {stats.pedidosConfirmados} confirmados
+                    </Typography>
+                    <Typography variant="body2" sx={{ color: '#303f9f' }}>
+                      🚚 {stats.pedidosEnviados} enviados
+                    </Typography>
+                    <Typography variant="body2" sx={{ color: '#388e3c' }}>
+                      ✅ {stats.pedidosEntregados} entregados
+                    </Typography>
+                  </Box>
+                </>
+              ) : (
+                // Resumen para otros usuarios (Envíos)
+                <>
+                  <Typography variant="body1" sx={{ mb: 2 }}>
+                    <strong>Estado del Sistema:</strong>
+                  </Typography>
+                  <Box sx={{ mb: 2 }}>
+                    <Typography variant="body2" color="textSecondary">
+                      • {stats.totalClientes} clientes registrados
+                    </Typography>
+                    <Typography variant="body2" color="textSecondary">
+                      • {stats.totalConductores} conductores disponibles
+                    </Typography>
+                    <Typography variant="body2" color="textSecondary">
+                      • {stats.totalVehiculos} vehículos en flota
+                    </Typography>
+                    <Typography variant="body2" color="textSecondary">
+                      • {stats.totalRutas} rutas configuradas
+                    </Typography>
+                  </Box>
+                  <Typography variant="body1" sx={{ mb: 1 }}>
+                    <strong>Envíos del Día:</strong>
+                  </Typography>
+                  <Box>
+                    <Typography variant="body2" sx={{ color: '#f57c00' }}>
+                      📋 {stats.enviosPendientes} pendientes
+                    </Typography>
+                    <Typography variant="body2" sx={{ color: '#1976d2' }}>
+                      🚛 {stats.enviosEnTransito} en tránsito
+                    </Typography>
+                    <Typography variant="body2" sx={{ color: '#388e3c' }}>
+                      ✅ {stats.enviosEntregados} entregados
+                    </Typography>
+                  </Box>
+                </>
+              )}
             </Box>
           </Paper>
         </Grid>

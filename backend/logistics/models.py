@@ -5,7 +5,7 @@ from django.core.validators import MinValueValidator, MaxValueValidator
 
 class Cliente(models.Model):
     nombre = models.CharField(max_length=200, verbose_name="Nombre")
-    email = models.EmailField(verbose_name="Correo Electrónico")
+    email = models.EmailField(unique=True, verbose_name="Correo Electrónico")
     telefono = models.CharField(max_length=20, verbose_name="Teléfono")
     direccion = models.TextField(verbose_name="Dirección")
     ciudad = models.CharField(max_length=100, verbose_name="Ciudad")
@@ -34,7 +34,7 @@ class Conductor(models.Model):
     cedula = models.CharField(max_length=20, unique=True, verbose_name="Cédula")
     licencia = models.CharField(max_length=50, verbose_name="Licencia de Conducir")
     telefono = models.CharField(max_length=20, verbose_name="Teléfono")
-    email = models.EmailField(verbose_name="Correo Electrónico")
+    email = models.EmailField(unique=True, verbose_name="Correo Electrónico")
     direccion = models.TextField(verbose_name="Dirección")
     fecha_contratacion = models.DateField(verbose_name="Fecha de Contratación")
     estado = models.CharField(max_length=20, choices=ESTADO_CHOICES, default='disponible', verbose_name="Estado")
@@ -196,3 +196,46 @@ class SeguimientoEnvio(models.Model):
 
     def __str__(self):
         return f"Seguimiento {self.envio.numero_guia} - {self.estado}"
+
+
+class PedidoTransporte(models.Model):
+    """Modelo para pedidos de transporte realizados por usuarios"""
+    ESTADO_CHOICES = [
+        ('pendiente', 'Pendiente'),
+        ('asignado', 'Asignado'),
+        ('en_ruta', 'En Ruta'),
+        ('entregado', 'Entregado'),
+        ('cancelado', 'Cancelado'),
+    ]
+    
+    usuario = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="Usuario")
+    cliente = models.ForeignKey(Cliente, on_delete=models.CASCADE, verbose_name="Cliente")
+    conductor = models.ForeignKey(Conductor, on_delete=models.CASCADE, null=True, blank=True, verbose_name="Conductor")
+    ruta = models.ForeignKey(Ruta, on_delete=models.CASCADE, null=True, blank=True, verbose_name="Ruta")
+    vehiculo = models.ForeignKey(Vehiculo, on_delete=models.CASCADE, null=True, blank=True, verbose_name="Vehículo")
+    
+    numero_pedido = models.CharField(max_length=50, unique=True, verbose_name="Número de Pedido")
+    descripcion = models.TextField(verbose_name="Descripción de la carga")
+    direccion_recogida = models.TextField(verbose_name="Dirección de Recogida")
+    direccion_entrega = models.TextField(verbose_name="Dirección de Entrega")
+    
+    peso_estimado = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True, verbose_name="Peso Estimado (kg)")
+    valor_declarado = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True, verbose_name="Valor Declarado")
+    precio_estimado = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name="Precio Estimado")
+    
+    fecha_recogida_deseada = models.DateTimeField(verbose_name="Fecha de Recogida Deseada")
+    fecha_entrega_estimada = models.DateTimeField(null=True, blank=True, verbose_name="Fecha de Entrega Estimada")
+    
+    estado = models.CharField(max_length=20, choices=ESTADO_CHOICES, default='pendiente', verbose_name="Estado")
+    observaciones = models.TextField(blank=True, verbose_name="Observaciones")
+    
+    fecha_creacion = models.DateTimeField(auto_now_add=True, verbose_name="Fecha de Creación")
+    fecha_actualizacion = models.DateTimeField(auto_now=True, verbose_name="Fecha de Actualización")
+    
+    class Meta:
+        verbose_name = "Pedido de Transporte"
+        verbose_name_plural = "Pedidos de Transporte"
+        ordering = ['-fecha_creacion']
+    
+    def __str__(self):
+        return f"Pedido {self.numero_pedido} - {self.usuario.username}"

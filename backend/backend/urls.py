@@ -19,5 +19,10 @@ from django.urls import path, include
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('', include('logistics.urls')),
+    
+    # API URLs con MongoDB (nueva implementación)
+    path('api/', include('logistics.mongo_urls')),
+    
+    # URLs originales como backup
+    path('original/', include('logistics.urls')),
 ]

@@ -79,6 +79,13 @@ const API_ENDPOINTS = {
   pedidos: '/api/pedidos/',
   pedidosEstadisticas: '/api/pedidos/estadisticas/',
   pedidosRecientes: '/api/pedidos/recientes/',
+  
+  // Autenticación
+  login: '/api/auth/login/',
+  register: '/api/auth/register/',
+  
+  // Dashboard
+  dashboardStats: '/api/dashboard/stats/',
 };
 
 // Helper functions for common API operations
@@ -86,7 +93,7 @@ export const clientesAPI = {
   getAll: () => apiService.get(API_ENDPOINTS.clientes),
   getById: (id) => apiService.get(`${API_ENDPOINTS.clientes}${id}/`),
   create: (data) => apiService.post(API_ENDPOINTS.clientes, data),
-  update: (id, data) => apiService.patch(`${API_ENDPOINTS.clientes}${id}/`, data),
+  update: (id, data) => apiService.put(`${API_ENDPOINTS.clientes}${id}/`, data),
   delete: (id) => apiService.delete(`${API_ENDPOINTS.clientes}${id}/`),
   getActivos: () => apiService.get(API_ENDPOINTS.clientesActivos),
 };
@@ -95,7 +102,7 @@ export const conductoresAPI = {
   getAll: () => apiService.get(API_ENDPOINTS.conductores),
   getById: (id) => apiService.get(`${API_ENDPOINTS.conductores}${id}/`),
   create: (data) => apiService.post(API_ENDPOINTS.conductores, data),
-  update: (id, data) => apiService.patch(`${API_ENDPOINTS.conductores}${id}/`, data),
+  update: (id, data) => apiService.put(`${API_ENDPOINTS.conductores}${id}/`, data),
   delete: (id) => apiService.delete(`${API_ENDPOINTS.conductores}${id}/`),
   getDisponibles: () => apiService.get(API_ENDPOINTS.conductoresDisponibles),
   cambiarEstado: (id, estado) => apiService.post(`${API_ENDPOINTS.conductores}${id}/cambiar_estado/`, { estado }),
@@ -105,7 +112,7 @@ export const vehiculosAPI = {
   getAll: () => apiService.get(API_ENDPOINTS.vehiculos),
   getById: (id) => apiService.get(`${API_ENDPOINTS.vehiculos}${id}/`),
   create: (data) => apiService.post(API_ENDPOINTS.vehiculos, data),
-  update: (id, data) => apiService.patch(`${API_ENDPOINTS.vehiculos}${id}/`, data),
+  update: (id, data) => apiService.put(`${API_ENDPOINTS.vehiculos}${id}/`, data),
   delete: (id) => apiService.delete(`${API_ENDPOINTS.vehiculos}${id}/`),
   getDisponibles: () => apiService.get(API_ENDPOINTS.vehiculosDisponibles),
   cambiarEstado: (id, estado) => apiService.post(`${API_ENDPOINTS.vehiculos}${id}/cambiar_estado/`, { estado }),
@@ -115,7 +122,7 @@ export const rutasAPI = {
   getAll: () => apiService.get(API_ENDPOINTS.rutas),
   getById: (id) => apiService.get(`${API_ENDPOINTS.rutas}${id}/`),
   create: (data) => apiService.post(API_ENDPOINTS.rutas, data),
-  update: (id, data) => apiService.patch(`${API_ENDPOINTS.rutas}${id}/`, data),
+  update: (id, data) => apiService.put(`${API_ENDPOINTS.rutas}${id}/`, data),
   delete: (id) => apiService.delete(`${API_ENDPOINTS.rutas}${id}/`),
   getActivas: () => apiService.get(API_ENDPOINTS.rutasActivas),
 };
@@ -124,7 +131,7 @@ export const enviosAPI = {
   getAll: () => apiService.get(API_ENDPOINTS.envios),
   getById: (id) => apiService.get(`${API_ENDPOINTS.envios}${id}/`),
   create: (data) => apiService.post(API_ENDPOINTS.envios, data),
-  update: (id, data) => apiService.patch(`${API_ENDPOINTS.envios}${id}/`, data),
+  update: (id, data) => apiService.put(`${API_ENDPOINTS.envios}${id}/`, data),
   delete: (id) => apiService.delete(`${API_ENDPOINTS.envios}${id}/`),
   getPendientes: () => apiService.get(API_ENDPOINTS.enviosPendientes),
   getEnTransito: () => apiService.get(API_ENDPOINTS.enviosEnTransito),
@@ -149,6 +156,17 @@ export const pedidosAPI = {
   cambiarEstado: (id, estado) => apiService.patch(`${API_ENDPOINTS.pedidos}${id}/cambiar_estado/`, { estado }),
   getEstadisticas: () => apiService.get(API_ENDPOINTS.pedidosEstadisticas),
   getRecientes: (limit = 10) => apiService.get(`${API_ENDPOINTS.pedidosRecientes}?limit=${limit}`),
+};
+
+// API de autenticación
+export const authAPI = {
+  login: (email, password) => apiService.post(API_ENDPOINTS.login, { email, password }),
+  register: (userData) => apiService.post(API_ENDPOINTS.register, userData),
+};
+
+// API del dashboard
+export const dashboardAPI = {
+  getStats: () => apiService.get(API_ENDPOINTS.dashboardStats),
 };
 
 // Utility functions

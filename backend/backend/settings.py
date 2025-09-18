@@ -81,29 +81,28 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-# Base de datos - MySQL con XAMPP
+# Base de datos SQLite para Django Auth (mínima)
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'tecnoroute_db',
-        'USER': 'root',
-        'PASSWORD': '',
-        'HOST': '127.0.0.1',
-        'PORT': '3306',
-        'OPTIONS': {
-            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
-            'charset': 'utf8mb4',
-        }
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'django_auth.sqlite3',  # Solo para autenticación Django
     }
 }
 
-# Base de datos SQLite anterior (respaldo):
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.sqlite3',
-#         'NAME': BASE_DIR / 'tecnoroute_db.sqlite3',
-#     }
-# }
+# Configuración MongoDB con MongoEngine
+import mongoengine
+
+# MongoDB local (descomenta para uso local):
+# mongoengine.connect(
+#     db='tecnoroute_mongodb',
+#     host='localhost',
+#     port=27017
+# )
+
+# MongoDB Atlas (Cloud) - Configuración por defecto
+# CAMBIAR: Reemplaza esta URL con tu string de conexión de MongoDB Atlas
+MONGODB_URI = config('MONGODB_URI', default='mongodb://localhost:27017/tecnoroute_mongodb')
+mongoengine.connect(host=MONGODB_URI)
 
 
 # Password validation

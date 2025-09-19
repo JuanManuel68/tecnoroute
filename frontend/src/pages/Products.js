@@ -17,17 +17,14 @@ import {
   InputLabel,
   Snackbar,
   Alert,
-  IconButton,
   Badge,
   Fab
 } from '@mui/material';
 import {
   ShoppingCart as ShoppingCartIcon,
   AddShoppingCart as AddShoppingCartIcon,
-  AttachMoney as AttachMoneyIcon,
   Category as CategoryIcon,
-  Search as SearchIcon,
-  FilterList as FilterListIcon
+  Search as SearchIcon
 } from '@mui/icons-material';
 import { useCart } from '../context/CartContext';
 import { useNavigate } from 'react-router-dom';

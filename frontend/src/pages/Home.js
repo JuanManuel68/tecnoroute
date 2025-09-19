@@ -7,21 +7,13 @@ import {
   Grid,
   Card,
   CardContent,
-  CardMedia,
   Paper,
-  List,
-  ListItem,
-  ListItemIcon,
-  ListItemText,
 } from '@mui/material';
 import {
   LocalShipping,
-  Speed,
   Security,
-  Support,
-  CheckCircle,
+  Speed,
   Store,
-  Inventory
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 
@@ -32,27 +24,13 @@ const Home = () => {
     {
       titulo: 'Transporte Rápido',
       descripcion: 'Entrega en tiempo record con nuestro sistema de logística avanzado',
-      icono: <Speed sx={{ fontSize: 50, color: 'primary.main' }} />
+      icono: <Speed sx={{ fontSize: 50, color: '#616161' }} />
     },
     {
       titulo: 'Seguridad Garantizada',
       descripcion: 'Tus productos están protegidos durante todo el proceso de entrega',
-      icono: <Security sx={{ fontSize: 50, color: 'primary.main' }} />
+      icono: <Security sx={{ fontSize: 50, color: '#616161' }} />
     },
-    {
-      titulo: 'Soporte 24/7',
-      descripcion: 'Atención al cliente disponible todos los días del año',
-      icono: <Support sx={{ fontSize: 50, color: 'primary.main' }} />
-    }
-  ];
-
-  const caracteristicas = [
-    'Seguimiento en tiempo real',
-    'Entrega programada',
-    'Múltiples formas de pago',
-    'Garantía de satisfacción',
-    'Red de distribución nacional',
-    'Tecnología de vanguardia'
   ];
 
   return (
@@ -60,7 +38,7 @@ const Home = () => {
       {/* Hero Section */}
       <Box
         sx={{
-          background: 'linear-gradient(135deg, #1976d2 0%, #42a5f5 100%)',
+          background: 'linear-gradient(135deg, #424242 0%, #616161 100%)',
           color: 'white',
           py: 12,
           textAlign: 'center'
@@ -104,13 +82,13 @@ const Home = () => {
 
       {/* Servicios Section */}
       <Container maxWidth="lg" sx={{ py: 8 }}>
-        <Typography variant="h3" align="center" gutterBottom sx={{ mb: 6 }}>
+        <Typography variant="h3" align="center" gutterBottom sx={{ mb: 6, color: '#424242' }}>
           Nuestros Servicios
         </Typography>
         
         <Grid container spacing={4}>
           {servicios.map((servicio, index) => (
-            <Grid item xs={12} md={4} key={index}>
+            <Grid item xs={12} md={6} key={index}>
               <Card sx={{ textAlign: 'center', height: '100%', p: 3 }}>
                 <CardContent>
                   <Box sx={{ mb: 2 }}>
@@ -133,8 +111,8 @@ const Home = () => {
       <Box sx={{ bgcolor: 'grey.100', py: 8 }}>
         <Container maxWidth="lg">
           <Grid container spacing={6} alignItems="center">
-            <Grid item xs={12} md={6}>
-              <Typography variant="h3" gutterBottom>
+            <Grid item xs={12} md={8}>
+              <Typography variant="h3" gutterBottom sx={{ color: '#424242' }}>
                 Sobre TecnoRoute
               </Typography>
               <Typography variant="body1" paragraph sx={{ fontSize: '1.1rem' }}>
@@ -152,28 +130,15 @@ const Home = () => {
                 <Typography variant="h6" gutterBottom>
                   ¿Por qué elegir TecnoRoute?
                 </Typography>
-                <List dense>
-                  {caracteristicas.map((caracteristica, index) => (
-                    <ListItem key={index} sx={{ py: 0.5 }}>
-                      <ListItemIcon>
-                        <CheckCircle color="primary" />
-                      </ListItemIcon>
-                      <ListItemText primary={caracteristica} />
-                    </ListItem>
-                  ))}
-                </List>
+                <Typography variant="body1">
+                  • Seguimiento en tiempo real<br/>
+                  • Entrega programada<br/>
+                  • Múltiples formas de pago<br/>
+                  • Garantía de satisfacción<br/>
+                  • Red de distribución nacional<br/>
+                  • Tecnología de vanguardia
+                </Typography>
               </Paper>
-            </Grid>
-            
-            <Grid item xs={12} md={6}>
-              <Card>
-                <CardMedia
-                  component="img"
-                  height="400"
-                  image="https://images.unsplash.com/photo-1586864387967-d02ef85d93e8?w=600"
-                  alt="Almacén de electrodomésticos"
-                />
-              </Card>
             </Grid>
           </Grid>
         </Container>
@@ -181,76 +146,37 @@ const Home = () => {
 
       {/* Estadísticas */}
       <Container maxWidth="lg" sx={{ py: 8 }}>
-        <Typography variant="h3" align="center" gutterBottom sx={{ mb: 6 }}>
+        <Typography variant="h3" align="center" gutterBottom sx={{ mb: 6, color: '#424242' }}>
           Confían en Nosotros
         </Typography>
         
         <Grid container spacing={4} textAlign="center">
-          <Grid item xs={12} sm={3}>
-            <Typography variant="h2" color="primary" gutterBottom>
+          <Grid item xs={12} sm={4}>
+            <Typography variant="h2" sx={{ color: '#616161' }} gutterBottom>
               10K+
             </Typography>
             <Typography variant="h6">
               Productos Entregados
             </Typography>
           </Grid>
-          <Grid item xs={12} sm={3}>
-            <Typography variant="h2" color="primary" gutterBottom>
+          <Grid item xs={12} sm={4}>
+            <Typography variant="h2" sx={{ color: '#616161' }} gutterBottom>
               500+
             </Typography>
             <Typography variant="h6">
               Clientes Satisfechos
             </Typography>
           </Grid>
-          <Grid item xs={12} sm={3}>
-            <Typography variant="h2" color="primary" gutterBottom>
-              50+
+          <Grid item xs={12} sm={4}>
+            <Typography variant="h2" sx={{ color: '#616161' }} gutterBottom>
+              24/7
             </Typography>
             <Typography variant="h6">
-              Ciudades Cubiertas
-            </Typography>
-          </Grid>
-          <Grid item xs={12} sm={3}>
-            <Typography variant="h2" color="primary" gutterBottom>
-              99%
-            </Typography>
-            <Typography variant="h6">
-              Entregas a Tiempo
+              Soporte al Cliente
             </Typography>
           </Grid>
         </Grid>
       </Container>
-
-      {/* Call to Action */}
-      <Box sx={{ bgcolor: 'primary.main', color: 'white', py: 6 }}>
-        <Container maxWidth="md" textAlign="center">
-          <Typography variant="h4" gutterBottom>
-            ¿Listo para empezar?
-          </Typography>
-          <Typography variant="body1" sx={{ mb: 4, fontSize: '1.1rem' }}>
-            Únete a miles de usuarios que confían en TecnoRoute para sus necesidades de electrodomésticos
-          </Typography>
-          <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center', flexWrap: 'wrap' }}>
-            <Button
-              variant="contained"
-              color="secondary"
-              size="large"
-              startIcon={<Inventory />}
-              onClick={() => navigate('/login?type=user')}
-            >
-              Explorar Productos
-            </Button>
-            <Button
-              variant="outlined"
-              color="inherit"
-              size="large"
-              onClick={() => navigate('/contact')}
-            >
-              Contáctanos
-            </Button>
-          </Box>
-        </Container>
-      </Box>
     </Box>
   );
 };

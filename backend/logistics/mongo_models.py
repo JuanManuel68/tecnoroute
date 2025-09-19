@@ -1,15 +1,69 @@
 from mongoengine import Document, EmbeddedDocument, fields
 from datetime import datetime
 from django.contrib.auth.models import User
+from werkzeug.security import generate_password_hash, check_password_hash
+
+
+# Modelo base para usuarios del sistema
+class Usuario(Document):
+    ROLES = [
+        ('admin', 'Administrador'),
+        ('cliente', 'Cliente'),
+        ('conductor', 'Conductor')
+    ]
+    
+    email = fields.EmailField(unique=True, required=True)
+    password_hash = fields.StringField(required=True)
+    rol = fields.StringField(max_length=20, choices=[choice[0] for choice in ROLES], required=True)
+    nombre = fields.StringField(max_length=200, required=True)
+    telefono = fields.StringField(max_length=20, required=True)
+    activo = fields.BooleanField(default=True)
+    fecha_registro = fields.DateTimeField(default=datetime.utcnow)
+    ultimo_acceso = fields.DateTimeField()
+    
+    meta = {
+        'collection': 'usuarios',
+        'ordering': ['-fecha_registro']
+    }
+    
+    def set_password(self, password):
+        """Hashear y guardar la contraseña"""
+        self.password_hash = generate_password_hash(password)
+    
+    def check_password(self, password):
+        """Verificar contraseña"""
+        return check_password_hash(self.password_hash, password)
+    
+    def __str__(self):
+        return f"{self.nombre} ({self.email})"
+
+
+# Modelo para Administradores
+class Administrador(Document):
+    usuario_id = fields.ObjectIdField(required=True)  # Referencia a Usuario
+    permisos_especiales = fields.ListField(fields.StringField(max_length=50))
+    departamento = fields.StringField(max_length=100)
+    fecha_contratacion = fields.DateTimeField()
+    
+    meta = {
+        'collection': 'administradores',
+        'ordering': ['departamento']
+    }
+    
+    def __str__(self):
+        return f"Admin: {self.usuario_id}"
 
 
 class Cliente(Document):
+    usuario_id = fields.ObjectIdField(required=True)  # Referencia a Usuario
     nombre = fields.StringField(max_length=200, required=True)
     email = fields.EmailField(unique=True, required=True)
     telefono = fields.StringField(max_length=20, required=True)
     direccion = fields.StringField(required=True)
     ciudad = fields.StringField(max_length=100, required=True)
     codigo_postal = fields.StringField(max_length=10, required=True)
+    tipo_cliente = fields.StringField(max_length=50, choices=['individual', 'empresa'], default='individual')
+    documento_identidad = fields.StringField(max_length=20)
     fecha_registro = fields.DateTimeField(default=datetime.utcnow)
     activo = fields.BooleanField(default=True)
 
@@ -30,13 +84,29 @@ class Conductor(Document):
         ('inactivo', 'Inactivo'),
     ]
     
+    CATEGORIA_LICENCIA = [
+        ('A1', 'A1 - Motocicleta'),
+        ('A2', 'A2 - Motocicleta alta cilindrada'),
+        ('B1', 'B1 - Automóvil'),
+        ('B2', 'B2 - Camioneta'),
+        ('B3', 'B3 - Microbús'),
+        ('C1', 'C1 - Camión rígido'),
+        ('C2', 'C2 - Camión articulado'),
+        ('C3', 'C3 - Camión especial')
+    ]
+    
+    usuario_id = fields.ObjectIdField(required=True)  # Referencia a Usuario
     nombre = fields.StringField(max_length=200, required=True)
     cedula = fields.StringField(max_length=20, unique=True, required=True)
     licencia = fields.StringField(max_length=50, required=True)
+    categoria_licencia = fields.StringField(max_length=10, choices=[choice[0] for choice in CATEGORIA_LICENCIA], required=True)
+    fecha_vencimiento_licencia = fields.DateTimeField(required=True)
     telefono = fields.StringField(max_length=20, required=True)
     email = fields.EmailField(unique=True, required=True)
     direccion = fields.StringField(required=True)
+    fecha_nacimiento = fields.DateTimeField(required=True)
     fecha_contratacion = fields.DateTimeField(required=True)
+    experiencia_años = fields.IntField(min_value=0, default=0)
     estado = fields.StringField(max_length=20, choices=[choice[0] for choice in ESTADO_CHOICES], default='disponible')
     activo = fields.BooleanField(default=True)
 

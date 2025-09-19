@@ -92,17 +92,18 @@ DATABASES = {
 # Configuración MongoDB con MongoEngine
 import mongoengine
 
-# MongoDB local (descomenta para uso local):
-# mongoengine.connect(
-#     db='tecnoroute_mongodb',
-#     host='localhost',
-#     port=27017
-# )
-
-# MongoDB Atlas (Cloud) - Configuración por defecto
-# CAMBIAR: Reemplaza esta URL con tu string de conexión de MongoDB Atlas
-MONGODB_URI = config('MONGODB_URI', default='mongodb://localhost:27017/tecnoroute_mongodb')
-mongoengine.connect(host=MONGODB_URI)
+# MongoDB local
+try:
+    mongoengine.connect(
+        db='tecnoroute_mongodb',
+        host='localhost',
+        port=27017,
+        serverSelectionTimeoutMS=2000  # Timeout rápido para pruebas
+    )
+    print("✅ MongoDB conectado exitosamente")
+except Exception as e:
+    print(f"⚠️ MongoDB no disponible: {e}")
+    print("📝 Para usar MongoDB, asegúrate de que esté ejecutándose en localhost:27017")
 
 
 # Password validation

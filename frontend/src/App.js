@@ -28,12 +28,12 @@ import './App.css';
 const theme = createTheme({
   palette: {
     primary: {
-      main: '#1976d2',
-      dark: '#115293',
-      light: '#42a5f5',
+      main: '#616161', // Gris medio
+      dark: '#424242', // Gris oscuro
+      light: '#9e9e9e', // Gris claro
     },
     secondary: {
-      main: '#dc004e',
+      main: '#757575', // Gris secundario
     },
     background: {
       default: '#f5f5f5',

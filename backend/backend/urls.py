@@ -23,6 +23,9 @@ urlpatterns = [
     # API URLs con MongoDB (nueva implementación)
     path('api/', include('logistics.mongo_urls')),
     
+    # URLs de autenticación MongoDB
+    path('api/auth/', include('logistics.mongo_auth_urls')),
+    
     # URLs originales como backup
     path('original/', include('logistics.urls')),
 ]

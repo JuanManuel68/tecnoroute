@@ -37,7 +37,7 @@ import {
 import { useAuth } from '../context/AuthContext';
 
 const Profile = () => {
-  const { user, updateUser } = useAuth();
+  const { user } = useAuth();
   const fileInputRef = useRef(null);
   
   const [editing, setEditing] = useState(false);

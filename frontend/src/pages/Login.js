@@ -41,18 +41,53 @@ const Login = () => {
     setLoading(true);
     setError('');
 
-    const result = await login(formData.email, formData.password);
-    
-    if (result.success) {
-      // Redirigir según el rol del usuario
-      const userData = JSON.parse(localStorage.getItem('user'));
-      if (userData.role === 'admin') {
-        navigate('/admin');
+    try {
+      // Intentar login con la nueva API de MongoDB
+      const response = await fetch('http://localhost:8000/api/auth/login/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: formData.email,
+          password: formData.password
+        })
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        // Guardar token y usuario en localStorage
+        localStorage.setItem('authToken', data.token);
+        localStorage.setItem('user', JSON.stringify(data.usuario));
+        
+        // Redirigir según el rol
+        if (data.usuario.rol === 'admin') {
+          navigate('/admin');
+        } else if (data.usuario.rol === 'conductor') {
+          navigate('/conductor'); // Puedes crear esta ruta después
+        } else {
+          navigate('/productos');
+        }
       } else {
-        navigate('/productos');
+        setError(data.error || 'Credenciales inválidas');
       }
-    } else {
-      setError(result.error);
+    } catch (error) {
+      console.warn('Nueva API no disponible, usando fallback:', error);
+      
+      // Fallback al método original
+      const result = await login(formData.email, formData.password);
+      
+      if (result.success) {
+        const userData = JSON.parse(localStorage.getItem('user'));
+        if (userData.role === 'admin') {
+          navigate('/admin');
+        } else {
+          navigate('/productos');
+        }
+      } else {
+        setError(result.error);
+      }
     }
     
     setLoading(false);
@@ -92,8 +127,8 @@ const Login = () => {
     }}>
       <Container component="main" maxWidth="lg">
         <Box sx={{ textAlign: 'center', mb: 4 }}>
-          <LocalShippingIcon sx={{ fontSize: 60, color: 'primary.main', mb: 2 }} />
-          <Typography component="h1" variant="h3" color="primary">
+          <LocalShippingIcon sx={{ fontSize: 60, color: '#616161', mb: 2 }} />
+          <Typography component="h1" variant="h3" color="primary" sx={{ color: '#424242' }}>
             {loginType === 'user' ? '🛒 Tienda TecnoRoute' : '🔐 Iniciar Sesión'}
           </Typography>
           <Typography variant="h6" color="textSecondary">

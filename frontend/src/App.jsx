@@ -4,26 +4,25 @@ import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { CartProvider } from './context/CartContext';
-import PublicNavbar from './components/PublicNavbar';
-import Navbar from './components/Navbar';
+import ModernPublicNavbar from './components/ModernPublicNavbar';
+import ModernNavbar from './components/ModernNavbar';
 import Home from './pages/Home';
-import Login from './pages/Login';
-import Register from './pages/Register';
-import Contact from './pages/Contact';
-import Products from './pages/Products';
-import Cart from './pages/Cart';
-import Profile from './pages/Profile';
-import Checkout from './pages/Checkout';
+import ModernLogin from './pages/ModernLogin';
+import ModernRegister from './pages/ModernRegister';
+import ModernContact from './pages/ModernContact';
+import ModernProducts from './pages/ModernProducts';
+import ModernCart from './pages/ModernCart';
+import ModernProfile from './pages/ModernProfile';
+import ModernCheckout from './pages/ModernCheckout';
 import Orders from './pages/Orders';
 import PedidosAdmin from './pages/PedidosAdmin';
-import Dashboard from './pages/Dashboard';
+import ModernDashboard from './pages/ModernDashboard';
 import Clientes from './pages/Clientes';
 import Conductores from './pages/Conductores';
 import Vehiculos from './pages/Vehiculos';
 import Rutas from './pages/Rutas';
 import Envios from './pages/Envios';
 import SeguimientoEnvio from './pages/SeguimientoEnvio';
-import './App.css';
 
 const theme = createTheme({
   palette: {
@@ -88,56 +87,53 @@ const AppContent = () => {
   }
   
   return (
-    <div className="App">
+    <div className="min-h-screen bg-gray-50">
       {/* Mostrar navbar según el estado de autenticación */}
       {isAuthenticated && isAdmin() ? (
-        <Navbar />
+        <ModernNavbar />
       ) : (
-        <PublicNavbar />
+        <ModernPublicNavbar />
       )}
       
-      <main style={{ 
-        marginTop: '64px', // Siempre hay navbar
-        minHeight: 'calc(100vh - 64px)'
-      }}>
+      <main className={`${isAuthenticated && isAdmin() ? 'pt-0' : 'pt-16'} min-h-screen`}>
         <Routes>
           {/* Rutas públicas */}
           <Route path="/" element={<Home />} />
-          <Route path="/contact" element={<Contact />} />
+          <Route path="/contact" element={<ModernContact />} />
           <Route 
             path="/login" 
             element={
               isAuthenticated ? (
                 isAdmin() ? <Navigate to="/admin" replace /> : <Navigate to="/productos" replace />
               ) : (
-                <Login />
+                <ModernLogin />
               )
             } 
           />
           <Route 
             path="/register" 
-            element={isAuthenticated ? <Navigate to="/productos" replace /> : <Register />} 
+            element={isAuthenticated ? <Navigate to="/productos" replace /> : <ModernRegister />} 
           />
           
           {/* Rutas de usuario (tienda) */}
           <Route path="/productos" element={
             <UserRoute>
-              <Products />
+              <ModernProducts />
             </UserRoute>
           } />
           <Route path="/cart" element={
             <UserRoute>
-              <Cart />
+              <ModernCart />
             </UserRoute>
           } />
           <Route path="/profile" element={
             <UserRoute>
-              <Profile />
+              <ModernProfile />
             </UserRoute>
           } />
           <Route path="/checkout" element={
             <UserRoute>
-              <Checkout />
+              <ModernCheckout />
             </UserRoute>
           } />
           <Route path="/orders" element={
@@ -149,56 +145,54 @@ const AppContent = () => {
           {/* Rutas de administrador */}
           <Route path="/admin" element={
             <AdminRoute>
-              <div style={{padding: '20px'}}>
-                <Dashboard />
-              </div>
+              <ModernDashboard />
             </AdminRoute>
           } />
           <Route path="/admin/clientes" element={
             <AdminRoute>
-              <div style={{padding: '20px'}}>
+              <div className="min-h-screen bg-gray-50 p-6">
                 <Clientes />
               </div>
             </AdminRoute>
           } />
           <Route path="/admin/conductores" element={
             <AdminRoute>
-              <div style={{padding: '20px'}}>
+              <div className="min-h-screen bg-gray-50 p-6">
                 <Conductores />
               </div>
             </AdminRoute>
           } />
           <Route path="/admin/vehiculos" element={
             <AdminRoute>
-              <div style={{padding: '20px'}}>
+              <div className="min-h-screen bg-gray-50 p-6">
                 <Vehiculos />
               </div>
             </AdminRoute>
           } />
           <Route path="/admin/rutas" element={
             <AdminRoute>
-              <div style={{padding: '20px'}}>
+              <div className="min-h-screen bg-gray-50 p-6">
                 <Rutas />
               </div>
             </AdminRoute>
           } />
           <Route path="/admin/envios" element={
             <AdminRoute>
-              <div style={{padding: '20px'}}>
+              <div className="min-h-screen bg-gray-50 p-6">
                 <Envios />
               </div>
             </AdminRoute>
           } />
           <Route path="/admin/seguimiento" element={
             <AdminRoute>
-              <div style={{padding: '20px'}}>
+              <div className="min-h-screen bg-gray-50 p-6">
                 <SeguimientoEnvio />
               </div>
             </AdminRoute>
           } />
           <Route path="/admin/pedidos" element={
             <AdminRoute>
-              <div style={{padding: '20px'}}>
+              <div className="min-h-screen bg-gray-50 p-6">
                 <PedidosAdmin />
               </div>
             </AdminRoute>

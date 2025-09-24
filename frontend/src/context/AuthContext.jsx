@@ -37,12 +37,8 @@ export const AuthProvider = ({ children }) => {
 
       // Intentar autenticación con la API de Django
       try {
-        // Convertir email a username para los usuarios conocidos
+        // Convertir email a username si es necesario
         let username = email;
-        if (email === 'admin@tecnoroute.com') username = 'admin';
-        if (email === 'usuario1@gmail.com') username = 'usuario1';
-        if (email === 'usuario2@gmail.com') username = 'usuario2';
-        if (email === 'cliente@hotmail.com') username = 'cliente1';
         
         const response = await fetch('http://localhost:8000/api/auth/login/', {
           method: 'POST',
@@ -74,30 +70,21 @@ export const AuthProvider = ({ children }) => {
       } catch (apiError) {
         console.warn('API not available, using mock authentication:', apiError);
         
-        // Fallback a mock users si la API no está disponible
-        const mockUsers = {
-          'admin@tecnoroute.com': {
-            id: 1,
-            name: 'Administrador',
-            email: 'admin@tecnoroute.com',
-            role: 'admin',
-            password: 'admin123'
-          },
-          'usuario@tecnoroute.com': {
-            id: 2,
-            name: 'Usuario Cliente',
-            email: 'usuario@tecnoroute.com',
-            role: 'user',
-            password: 'user123'
-          }
-        };
-        
-        const mockUser = mockUsers[email];
-        if (mockUser && mockUser.password === password) {
-          const { password: _, ...userWithoutPassword } = mockUser;
+        // Fallback: usar credenciales por defecto cuando la API no esté disponible
+        // En producción, esto debería removerse
+        if ((email === 'admin@tecnoroute.com' && password === 'admin123') ||
+            (email === 'usuario@tecnoroute.com' && password === 'user123')) {
           
-          setUser(userWithoutPassword);
-          localStorage.setItem('user', JSON.stringify(userWithoutPassword));
+          const isAdmin = email === 'admin@tecnoroute.com';
+          const userData = {
+            id: isAdmin ? 1 : 2,
+            name: isAdmin ? 'Administrador' : 'Usuario Cliente',
+            email: email,
+            role: isAdmin ? 'admin' : 'user'
+          };
+          
+          setUser(userData);
+          localStorage.setItem('user', JSON.stringify(userData));
           localStorage.setItem('authToken', 'mock-jwt-token');
           
           return { success: true };
@@ -153,6 +140,12 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('authToken');
   };
 
+  const updateUser = (userData) => {
+    const updatedUser = { ...user, ...userData };
+    setUser(updatedUser);
+    localStorage.setItem('user', JSON.stringify(updatedUser));
+  };
+
   const isAdmin = () => {
     return user?.role === 'admin';
   };
@@ -166,6 +159,7 @@ export const AuthProvider = ({ children }) => {
     login,
     register,
     logout,
+    updateUser,
     loading,
     isAuthenticated: !!user,
     isAdmin,

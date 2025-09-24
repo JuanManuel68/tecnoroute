@@ -5,7 +5,8 @@ import {
   AdjustmentsHorizontalIcon,
   StarIcon,
   HeartIcon,
-  EyeIcon
+  EyeIcon,
+  ExclamationTriangleIcon
 } from '@heroicons/react/24/outline';
 import {
   HeartIcon as HeartSolid,
@@ -13,183 +14,53 @@ import {
 } from '@heroicons/react/24/solid';
 import { useCart } from '../context/CartContext';
 import { useNavigate } from 'react-router-dom';
+import { productosAPI, categoriasAPI, carritoAPI } from '../services/apiService';
 
 const ModernProducts = () => {
   const { addToCart, getCartItemsCount } = useCart();
   const navigate = useNavigate();
   const [productos, setProductos] = useState([]);
+  const [categorias, setCategorias] = useState([]);
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [showNotification, setShowNotification] = useState(false);
   const [favorites, setFavorites] = useState(new Set());
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // Base de datos de productos completa
+  // Cargar productos y categorías desde la API
   useEffect(() => {
-    const productosCompletos = [
-      // ELECTRODOMÉSTICOS DE COCINA
-      {
-        id: 1,
-        nombre: 'Refrigerador Samsung 500L',
-        descripcion: 'Refrigerador doble puerta con dispensador de agua y hielo',
-        precio: 1299.99,
-        categoria: 'Electrodomésticos',
-        subcategoria: 'Cocina',
-        imagen: 'https://images.unsplash.com/photo-1571175443880-49e1d25b2bc5?w=500&h=400&fit=crop',
-        stock: 8,
-        marca: 'Samsung',
-        rating: 4.5,
-        descuento: 10
-      },
-      {
-        id: 2,
-        nombre: 'Microondas LG 1.5 Cu Ft',
-        descripcion: 'Microondas con grill y función de descongelado automático',
-        precio: 299.99,
-        categoria: 'Electrodomésticos',
-        subcategoria: 'Cocina',
-        imagen: 'https://images.unsplash.com/photo-1574269909862-7e1d70bb8078?w=500&h=400&fit=crop',
-        stock: 15,
-        marca: 'LG',
-        rating: 4.2,
-        descuento: 0
-      },
-      {
-        id: 3,
-        nombre: 'Lavadora Whirlpool 18kg',
-        descripcion: 'Lavadora automática con 12 programas de lavado',
-        precio: 899.99,
-        categoria: 'Electrodomésticos',
-        subcategoria: 'Lavandería',
-        imagen: 'https://images.unsplash.com/photo-1626806787461-102c1bfaaea1?w=500&h=400&fit=crop',
-        stock: 6,
-        marca: 'Whirlpool',
-        rating: 4.7,
-        descuento: 15
-      },
-      {
-        id: 4,
-        nombre: 'Licuadora Oster Pro',
-        descripcion: 'Licuadora de alta potencia con jarra de vidrio',
-        precio: 89.99,
-        categoria: 'Electrodomésticos',
-        subcategoria: 'Cocina',
-        imagen: 'https://images.unsplash.com/photo-1570222094114-d054a817e56b?w=500&h=400&fit=crop',
-        stock: 20,
-        marca: 'Oster',
-        rating: 4.0,
-        descuento: 0
-      },
-      // ELECTRÓNICOS
-      {
-        id: 5,
-        nombre: 'Smart TV Samsung 55"',
-        descripcion: 'Televisor 4K UHD con Smart TV y HDR',
-        precio: 799.99,
-        categoria: 'Electrónicos',
-        subcategoria: 'Entretenimiento',
-        imagen: 'https://images.unsplash.com/photo-1593359677879-a4bb92f829d1?w=500&h=400&fit=crop',
-        stock: 12,
-        marca: 'Samsung',
-        rating: 4.6,
-        descuento: 20
-      },
-      {
-        id: 6,
-        nombre: 'Laptop HP Pavilion',
-        descripcion: 'Laptop 15.6" Intel i5, 8GB RAM, 256GB SSD',
-        precio: 699.99,
-        categoria: 'Electrónicos',
-        subcategoria: 'Computadoras',
-        imagen: 'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=500&h=400&fit=crop',
-        stock: 5,
-        marca: 'HP',
-        rating: 4.3,
-        descuento: 0
-      },
-      {
-        id: 7,
-        nombre: 'Smartphone iPhone 14',
-        descripcion: 'iPhone 14 128GB con cámara avanzada',
-        precio: 999.99,
-        categoria: 'Electrónicos',
-        subcategoria: 'Móviles',
-        imagen: 'https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=500&h=400&fit=crop',
-        stock: 10,
-        marca: 'Apple',
-        rating: 4.8,
-        descuento: 0
-      },
-      {
-        id: 8,
-        nombre: 'Audífonos Sony WH-1000XM4',
-        descripcion: 'Audífonos inalámbricos con cancelación de ruido',
-        precio: 279.99,
-        categoria: 'Electrónicos',
-        subcategoria: 'Audio',
-        imagen: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=500&h=400&fit=crop',
-        stock: 18,
-        marca: 'Sony',
-        rating: 4.4,
-        descuento: 25
-      },
-      // HOGAR Y DECORACIÓN
-      {
-        id: 9,
-        nombre: 'Sofá Modular 3 Plazas',
-        descripcion: 'Sofá cómodo con tapicería de tela gris',
-        precio: 899.99,
-        categoria: 'Hogar',
-        subcategoria: 'Muebles',
-        imagen: 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=500&h=400&fit=crop',
-        stock: 4,
-        marca: 'HomeStyle',
-        rating: 4.1,
-        descuento: 0
-      },
-      {
-        id: 10,
-        nombre: 'Mesa de Comedor Madera',
-        descripcion: 'Mesa para 6 personas en madera maciza',
-        precio: 549.99,
-        categoria: 'Hogar',
-        subcategoria: 'Muebles',
-        imagen: 'https://images.unsplash.com/photo-1503602642458-232111445657?w=500&h=400&fit=crop',
-        stock: 7,
-        marca: 'WoodCraft',
-        rating: 4.5,
-        descuento: 10
-      },
-      {
-        id: 11,
-        nombre: 'Lámpara de Piso LED',
-        descripcion: 'Lámpara moderna con luz LED regulable',
-        precio: 129.99,
-        categoria: 'Hogar',
-        subcategoria: 'Iluminación',
-        imagen: 'https://images.unsplash.com/photo-1507473885765-e6ed057f782c?w=500&h=400&fit=crop',
-        stock: 14,
-        marca: 'LightUp',
-        rating: 4.0,
-        descuento: 0
-      },
-      {
-        id: 12,
-        nombre: 'Aspiradora Robótica',
-        descripcion: 'Robot aspiradora con mapeo inteligente',
-        precio: 399.99,
-        categoria: 'Hogar',
-        subcategoria: 'Limpieza',
-        imagen: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=500&h=400&fit=crop',
-        stock: 9,
-        marca: 'RoboClean',
-        rating: 4.3,
-        descuento: 15
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        
+        // Obtener productos y categorías en paralelo
+        const [productosResponse, categoriasResponse] = await Promise.all([
+          productosAPI.getAll(),
+          categoriasAPI.getAll()
+        ]);
+        
+        console.log('Productos obtenidos:', productosResponse.data);
+        console.log('Categorías obtenidas:', categoriasResponse.data);
+        
+        setProductos(productosResponse.data);
+        setCategorias(categoriasResponse.data);
+        setFilteredProducts(productosResponse.data);
+      } catch (error) {
+        console.error('Error cargando productos:', error);
+        setError('Error al cargar los productos. Verifica tu conexión.');
+        // Fallback: usar algunos productos de ejemplo si falla la API
+        const fallbackProducts = [];
+        setProductos(fallbackProducts);
+        setFilteredProducts(fallbackProducts);
+      } finally {
+        setLoading(false);
       }
-    ];
-
-    setProductos(productosCompletos);
-    setFilteredProducts(productosCompletos);
+    };
+    
+    fetchData();
   }, []);
 
   // Filtros
@@ -198,26 +69,34 @@ const ModernProducts = () => {
 
     if (selectedCategory) {
       filtered = filtered.filter(producto => 
-        producto.categoria.toLowerCase() === selectedCategory.toLowerCase()
+        producto.categoria?.nombre?.toLowerCase() === selectedCategory.toLowerCase()
       );
     }
 
     if (searchTerm) {
       filtered = filtered.filter(producto =>
         producto.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        producto.marca.toLowerCase().includes(searchTerm.toLowerCase())
+        (producto.marca && producto.marca.toLowerCase().includes(searchTerm.toLowerCase()))
       );
     }
 
     setFilteredProducts(filtered);
   }, [selectedCategory, searchTerm, productos]);
 
-  const categories = [...new Set(productos.map(p => p.categoria))];
+  const categories = categorias.map(cat => cat.nombre);
 
-  const handleAddToCart = (producto) => {
-    addToCart(producto);
-    setShowNotification(true);
-    setTimeout(() => setShowNotification(false), 3000);
+  const handleAddToCart = async (producto) => {
+    try {
+      // Agregar el producto al carrito en el backend
+      await carritoAPI.addItem(producto.id, 1);
+      // Actualizar el carrito en el estado local
+      addToCart(producto);
+      setShowNotification(true);
+      setTimeout(() => setShowNotification(false), 3000);
+    } catch (error) {
+      console.error('Error al agregar al carrito:', error);
+      alert('No se pudo agregar el producto al carrito. Intente de nuevo.');
+    }
   };
 
   const toggleFavorite = (productId) => {
@@ -326,7 +205,29 @@ const ModernProducts = () => {
           </div>
         </div>
 
+        {/* Loading State */}
+        {loading && (
+          <div className="text-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Cargando productos...</p>
+          </div>
+        )}
+
+        {/* Error State */}
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-6 mb-8">
+            <div className="flex items-center">
+              <ExclamationTriangleIcon className="w-6 h-6 text-red-600 mr-3" />
+              <div>
+                <h3 className="text-red-800 font-semibold">Error al cargar productos</h3>
+                <p className="text-red-600">{error}</p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Products Grid */}
+        {!loading && !error && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {filteredProducts.map(producto => {
             const priceInfo = formatPrice(producto.precio, producto.descuento);
@@ -334,9 +235,12 @@ const ModernProducts = () => {
               <div key={producto.id} className="card group cursor-pointer overflow-hidden">
                 <div className="relative">
                   <img
-                    src={producto.imagen}
+                    src={producto.imagen || 'https://images.unsplash.com/photo-1571175443880-49e1d25b2bc5?w=500&h=400&fit=crop'}
                     alt={producto.nombre}
                     className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
+                    onError={(e) => {
+                      e.target.src = 'https://images.unsplash.com/photo-1571175443880-49e1d25b2bc5?w=500&h=400&fit=crop';
+                    }}
                   />
                   
                   {/* Discount Badge */}
@@ -378,7 +282,7 @@ const ModernProducts = () => {
                 <div className="p-6">
                   <div className="mb-2">
                     <span className="text-xs font-medium text-primary-600 bg-primary-100 px-2 py-1 rounded-full">
-                      {producto.marca}
+                      {producto.categoria?.nombre || 'Sin categoría'}
                     </span>
                   </div>
                   
@@ -393,29 +297,18 @@ const ModernProducts = () => {
                   {/* Rating */}
                   <div className="flex items-center mb-3">
                     <div className="flex items-center">
-                      {renderStars(producto.rating)}
+                      {renderStars(4.5)}
                     </div>
                     <span className="ml-2 text-sm text-gray-600">
-                      ({producto.rating})
+                      (4.5)
                     </span>
                   </div>
 
                   {/* Price */}
                   <div className="mb-4">
-                    {priceInfo.hasDiscount ? (
-                      <div className="flex items-center space-x-2">
-                        <span className="text-2xl font-bold text-primary-600">
-                          {priceInfo.final}
-                        </span>
-                        <span className="text-lg text-gray-500 line-through">
-                          {priceInfo.original}
-                        </span>
-                      </div>
-                    ) : (
-                      <span className="text-2xl font-bold text-primary-600">
-                        {priceInfo.final}
-                      </span>
-                    )}
+                    <span className="text-2xl font-bold text-primary-600">
+                      ${Number(producto.precio).toFixed(2)}
+                    </span>
                   </div>
 
                   {/* Add to Cart Button */}
@@ -438,9 +331,10 @@ const ModernProducts = () => {
             );
           })}
         </div>
+        )}
 
         {/* No products found */}
-        {filteredProducts.length === 0 && (
+        {!loading && !error && filteredProducts.length === 0 && (
           <div className="text-center py-12">
             <div className="w-64 mx-auto mb-6 opacity-50">
               <img src="https://images.unsplash.com/photo-1584464491033-06628f3a6b7b?w=300" alt="No products" />

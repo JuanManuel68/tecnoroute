@@ -20,14 +20,14 @@ router.register(r'pedidos-transporte', views.PedidoTransporteViewSet, basename='
 router.register(r'seguimientos', views.SeguimientoEnvioViewSet)
 
 urlpatterns = [
-    path('api/', include(router.urls)),
+    path('', include(router.urls)),
     # Autenticación
-    path('api/auth/login/', AuthView.as_view(), name='auth-login'),
-    path('api/auth/register/', RegisterView.as_view(), name='auth-register'),
-    path('api/auth/logout/', LogoutView.as_view(), name='auth-logout'),
-    path('api/auth/profile/', UserProfileView.as_view(), name='auth-profile'),
+    path('auth/login/', AuthView.as_view(), name='auth-login'),
+    path('auth/register/', RegisterView.as_view(), name='auth-register'),
+    path('auth/logout/', LogoutView.as_view(), name='auth-logout'),
+    path('auth/profile/', UserProfileView.as_view(), name='auth-profile'),
     # Carrito
-    path('api/carrito/', CarritoView.as_view(), name='carrito'),
+    path('carrito/', CarritoView.as_view(), name='carrito'),
     # Test
-    path('api/test/', test_connection, name='test-connection'),
+    path('test/', test_connection, name='test-connection'),
 ]

@@ -107,29 +107,73 @@ export const AuthProvider = ({ children }) => {
         userData = { name, email, password };
       }
       
+      console.log('Datos recibidos para registro:', userData);
+      
       if (userData.name && userData.email && userData.password) {
-        const newUser = {
-          id: Date.now(),
-          name: userData.name,
-          email: userData.email,
-          phone: userData.phone,
-          address: userData.address,
-          paymentMethod: userData.paymentMethod,
-          role: 'user' // Los nuevos usuarios siempre son 'user'
-        };
-        
-        // Aquí normalmente enviarías los datos al backend
-        // const response = await apiService.post('/api/users/', newUser);
-        
-        setUser(newUser);
-        localStorage.setItem('user', JSON.stringify(newUser));
-        localStorage.setItem('authToken', 'mock-jwt-token');
-        
-        return { success: true };
+        // Intentar registro con la API de Django
+        try {
+          const response = await fetch('http://localhost:8000/api/auth/register/', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              name: userData.name,
+              email: userData.email,
+              password: userData.password,
+              phone: userData.phone || '',
+              address: userData.address || '',
+              city: userData.city || '',
+              postalCode: userData.postalCode || ''
+            })
+          });
+
+          const responseData = await response.json();
+          console.log('Respuesta del backend:', responseData);
+
+          if (response.ok && responseData.success) {
+            // Registro exitoso en backend
+            const newUser = {
+              id: responseData.user.id,
+              name: responseData.user.first_name + ' ' + responseData.user.last_name,
+              email: responseData.user.email,
+              role: responseData.user.role
+            };
+            
+            setUser(newUser);
+            localStorage.setItem('user', JSON.stringify(newUser));
+            localStorage.setItem('authToken', responseData.token);
+            
+            return { success: true, message: responseData.message };
+          } else {
+            // Error en el backend
+            return { success: false, error: responseData.error || 'Error en el registro' };
+          }
+        } catch (apiError) {
+          console.error('Error conectando con backend:', apiError);
+          
+          // Fallback: registrar localmente si no hay conexión
+          const newUser = {
+            id: Date.now(),
+            name: userData.name,
+            email: userData.email,
+            phone: userData.phone,
+            address: userData.address,
+            city: userData.city,
+            role: 'customer'
+          };
+          
+          setUser(newUser);
+          localStorage.setItem('user', JSON.stringify(newUser));
+          localStorage.setItem('authToken', 'mock-jwt-token');
+          
+          return { success: true, message: 'Usuario registrado localmente (sin conexión al servidor)' };
+        }
       } else {
-        return { success: false, error: 'Todos los campos son requeridos' };
+        return { success: false, error: 'Nombre, email y contraseña son requeridos' };
       }
     } catch (error) {
+      console.error('Error en función de registro:', error);
       return { success: false, error: error.message };
     }
   };

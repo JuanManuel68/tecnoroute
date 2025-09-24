@@ -19,5 +19,10 @@ from django.urls import path, include
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('', include('logistics.urls')),
+    
+    # API URLs principales (SQLite)
+    path('api/', include('logistics.urls')),
+    
+    # URLs de autenticación y perfil
+    path('api/', include('user_management.urls')),
 ]

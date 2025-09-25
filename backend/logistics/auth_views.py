@@ -8,6 +8,7 @@ from django.contrib.auth.models import User
 from django.db.models import Q, Count, Sum
 from django.shortcuts import get_object_or_404
 from django.db import transaction
+from django.utils import timezone
 from datetime import datetime, timedelta
 import uuid
 
@@ -87,6 +88,17 @@ class AuthView(APIView):
                     }
                 except Conductor.DoesNotExist:
                     pass
+            elif profile.role == 'admin':
+                try:
+                    from .models import Admin
+                    admin = Admin.objects.get(user=user)
+                    user_data['admin_info'] = {
+                        'id': admin.id,
+                        'nivel_acceso': admin.nivel_acceso,
+                        'fecha_contratacion': admin.fecha_contratacion.strftime('%Y-%m-%d')
+                    }
+                except Admin.DoesNotExist:
+                    pass
             
             return Response({
                 'token': token.key,
@@ -109,19 +121,61 @@ class RegisterView(APIView):
             user = serializer.save()
             token, created = Token.objects.get_or_create(user=user)
             
+            # Obtener el rol del perfil creado
+            try:
+                profile = user.userprofile
+                role = profile.role
+            except UserProfile.DoesNotExist:
+                role = 'customer'
+            
+            # Crear datos de usuario completos incluyendo información del rol
+            user_data = {
+                'id': user.id,
+                'username': user.username,
+                'email': user.email,
+                'first_name': user.first_name,
+                'last_name': user.last_name,
+                'role': role,
+                'telefono': profile.telefono,
+                'direccion': profile.direccion
+            }
+            
+            # Agregar datos específicos según el rol
+            if role == 'conductor':
+                try:
+                    from .models import Conductor
+                    conductor = Conductor.objects.get(email=user.email)
+                    user_data['conductor_info'] = {
+                        'id': conductor.id,
+                        'cedula': conductor.cedula,
+                        'licencia': conductor.licencia,
+                        'estado': conductor.estado
+                    }
+                except Conductor.DoesNotExist:
+                    pass
+            elif role == 'admin':
+                try:
+                    from .models import Admin
+                    admin = Admin.objects.get(user=user)
+                    user_data['admin_info'] = {
+                        'id': admin.id,
+                        'nivel_acceso': admin.nivel_acceso,
+                        'fecha_contratacion': admin.fecha_contratacion.strftime('%Y-%m-%d')
+                    }
+                except Admin.DoesNotExist:
+                    pass
+            
             return Response({
+                'success': True,
                 'message': 'Usuario registrado exitosamente',
                 'token': token.key,
-                'user': {
-                    'id': user.id,
-                    'username': user.username,
-                    'email': user.email,
-                    'first_name': user.first_name,
-                    'last_name': user.last_name,
-                    'role': 'customer'
-                }
+                'user': user_data
             }, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return Response({
+            'success': False,
+            'error': 'Error en los datos enviados',
+            'details': serializer.errors
+        }, status=status.HTTP_400_BAD_REQUEST)
 
 
 class LogoutView(APIView):
@@ -278,14 +332,16 @@ class CarritoView(APIView):
 class PedidoViewSet(viewsets.ModelViewSet):
     """ViewSet para pedidos"""
     serializer_class = PedidoSerializer
-    permission_classes = [permissions.AllowAny]  # Temporalmente para debugging
+    permission_classes = [permissions.IsAuthenticated]  # Solo usuarios autenticados
 
     def get_queryset(self):
-        # Temporalmente mostrar todos los pedidos para debugging
-        return Pedido.objects.all().select_related('usuario').prefetch_related('items')
-        # if hasattr(self.request.user, 'userprofile') and self.request.user.userprofile.role == 'admin':
-        #     return Pedido.objects.all().select_related('usuario').prefetch_related('items')
-        # return Pedido.objects.filter(usuario=self.request.user).prefetch_related('items')
+        # Filtrar pedidos según el tipo de usuario
+        if hasattr(self.request.user, 'userprofile') and self.request.user.userprofile.role == 'admin':
+            # Si es admin, mostrar todos los pedidos
+            return Pedido.objects.all().select_related('usuario').prefetch_related('items')
+        else:
+            # Si es usuario normal, solo sus pedidos
+            return Pedido.objects.filter(usuario=self.request.user).prefetch_related('items')
 
     @transaction.atomic
     def create(self, request):
@@ -346,19 +402,48 @@ class PedidoViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['patch'])
     def cambiar_estado(self, request, pk=None):
-        """Cambiar estado del pedido (solo admin)"""
-        if not (hasattr(request.user, 'userprofile') and request.user.userprofile.role == 'admin'):
-            return Response({'error': 'No autorizado'}, status=status.HTTP_403_FORBIDDEN)
-
+        """Cambiar estado del pedido"""
         pedido = self.get_object()
         nuevo_estado = request.data.get('estado')
-
+        
+        # Verificar permisos según el rol
+        user_profile = getattr(request.user, 'userprofile', None)
+        if not user_profile:
+            return Response({'error': 'Usuario no tiene perfil'}, status=status.HTTP_403_FORBIDDEN)
+        
+        # Admins pueden cambiar cualquier estado
+        if user_profile.role == 'admin':
+            pass  # Permitir cualquier cambio
+        # Conductores pueden cambiar de pendiente a confirmado, y de confirmado a entregado
+        elif user_profile.role == 'conductor':
+            if nuevo_estado == 'confirmado' and pedido.estado == 'pendiente':
+                # Asignar conductor al pedido
+                try:
+                    from .models import Conductor
+                    conductor = Conductor.objects.get(email=request.user.email)
+                    pedido.conductor = conductor
+                    pedido.fecha_asignacion = timezone.now()
+                except Conductor.DoesNotExist:
+                    return Response({'error': 'Conductor no encontrado'}, status=status.HTTP_404_NOT_FOUND)
+            elif nuevo_estado == 'entregado' and pedido.estado == 'confirmado':
+                # Verificar que el conductor que entrega sea el mismo que tomó el pedido
+                try:
+                    conductor = Conductor.objects.get(email=request.user.email)
+                    if pedido.conductor != conductor:
+                        return Response({'error': 'Solo el conductor asignado puede marcar como entregado'}, status=status.HTTP_403_FORBIDDEN)
+                except Conductor.DoesNotExist:
+                    return Response({'error': 'Conductor no encontrado'}, status=status.HTTP_404_NOT_FOUND)
+            else:
+                return Response({'error': 'Cambio de estado no permitido'}, status=status.HTTP_403_FORBIDDEN)
+        else:
+            return Response({'error': 'No autorizado'}, status=status.HTTP_403_FORBIDDEN)
+        
         if nuevo_estado not in [choice[0] for choice in Pedido.ESTADOS_PEDIDO]:
             return Response({'error': 'Estado no válido'}, status=status.HTTP_400_BAD_REQUEST)
-
+        
         pedido.estado = nuevo_estado
         pedido.save()
-
+        
         serializer = PedidoSerializer(pedido)
         return Response(serializer.data)
 
@@ -437,10 +522,10 @@ class PedidoViewSet(viewsets.ModelViewSet):
 @permission_classes([permissions.AllowAny])
 def test_connection(request):
     """Endpoint de prueba para verificar conexión"""
-    from core.models import Pedido
+    from user_management.models import Pedido
     total_pedidos = Pedido.objects.count()
     return Response({
         'status': 'API funcionando correctamente',
         'total_pedidos': total_pedidos,
-        'timestamp': '2025-09-05'
+        'timestamp': '2025-09-25'
     })

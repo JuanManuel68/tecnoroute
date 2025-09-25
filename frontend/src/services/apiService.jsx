@@ -196,6 +196,17 @@ export const carritoAPI = {
   removeItem: (itemId) => apiService.delete(API_ENDPOINTS.carrito, {
     data: { item_id: itemId }
   }),
+  clear: () => {
+    // Clear cart by removing all items - will be handled by getting cart and removing each item
+    return apiService.get(API_ENDPOINTS.carrito).then(response => {
+      const promises = response.data.items?.map(item => 
+        apiService.delete(API_ENDPOINTS.carrito, {
+          data: { item_id: item.id }
+        })
+      ) || [];
+      return Promise.all(promises);
+    });
+  }
 };
 
 // API de autenticación

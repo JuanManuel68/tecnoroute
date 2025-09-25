@@ -8,13 +8,16 @@ import {
   UserPlusIcon,
   TruckIcon,
   PhoneIcon,
-  MapPinIcon
+  MapPinIcon,
+  ShieldCheckIcon,
+  IdentificationIcon,
+  UserGroupIcon
 } from '@heroicons/react/24/outline';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 const ModernRegister = () => {
-  const { register } = useAuth();
+  const { register, getDashboardRoute } = useAuth();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -24,6 +27,10 @@ const ModernRegister = () => {
     address: '',
     city: '',
     postalCode: '',
+    role: 'customer', // Default role
+    // Campos adicionales para conductor
+    cedula: '',
+    licencia: '',
     acceptTerms: false
   });
   const [showPassword, setShowPassword] = useState(false);
@@ -64,12 +71,14 @@ const ModernRegister = () => {
       newErrors.phone = 'El teléfono es requerido';
     }
 
-    if (!formData.address.trim()) {
-      newErrors.address = 'La dirección es requerida';
-    }
-
-    if (!formData.city.trim()) {
-      newErrors.city = 'La ciudad es requerida';
+    // Solo requerir dirección y ciudad para clientes y admins, no para conductores
+    if (formData.role !== 'conductor') {
+      if (!formData.address.trim()) {
+        newErrors.address = 'La dirección es requerida';
+      }
+      if (!formData.city.trim()) {
+        newErrors.city = 'La ciudad es requerida';
+      }
     }
 
     if (!formData.password) {
@@ -82,6 +91,16 @@ const ModernRegister = () => {
       newErrors.confirmPassword = 'Confirma tu contraseña';
     } else if (formData.password !== formData.confirmPassword) {
       newErrors.confirmPassword = 'Las contraseñas no coinciden';
+    }
+
+    // Validaciones específicas para conductor
+    if (formData.role === 'conductor') {
+      if (!formData.cedula.trim()) {
+        newErrors.cedula = 'La cédula es requerida para conductores';
+      }
+      if (!formData.licencia.trim()) {
+        newErrors.licencia = 'La licencia de conducir es requerida';
+      }
     }
 
     if (!formData.acceptTerms) {
@@ -105,7 +124,7 @@ const ModernRegister = () => {
     try {
       const result = await register(formData);
       if (result.success) {
-        navigate('/productos');
+        navigate(getDashboardRoute());
       } else {
         setErrors({ submit: result.error });
       }
@@ -266,47 +285,190 @@ const ModernRegister = () => {
                     </div>
                   </div>
 
-                  <div className="mt-6 grid md:grid-cols-2 gap-6">
-                    <div>
-                      <label htmlFor="address" className="block text-sm font-medium text-gray-700 mb-2">
-                        Dirección *
-                      </label>
-                      <div className="relative">
-                        <input
-                          id="address"
-                          name="address"
-                          type="text"
-                          required
-                          value={formData.address}
-                          onChange={handleInputChange}
-                          className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary-500 transition-colors pl-11 ${
-                            errors.address ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : 'border-gray-300 focus:border-primary-500'
-                          }`}
-                          placeholder="Calle Principal 123"
-                        />
-                        <MapPinIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  {/* Ocultar dirección y código postal para conductores */}
+                  {formData.role !== 'conductor' && (
+                    <div className="mt-6 grid md:grid-cols-2 gap-6">
+                      <div>
+                        <label htmlFor="address" className="block text-sm font-medium text-gray-700 mb-2">
+                          Dirección *
+                        </label>
+                        <div className="relative">
+                          <input
+                            id="address"
+                            name="address"
+                            type="text"
+                            required={formData.role !== 'conductor'}
+                            value={formData.address}
+                            onChange={handleInputChange}
+                            className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary-500 transition-colors pl-11 ${
+                              errors.address ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : 'border-gray-300 focus:border-primary-500'
+                            }`}
+                            placeholder="Calle Principal 123"
+                          />
+                          <MapPinIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                        </div>
+                        {errors.address && (
+                          <p className="mt-1 text-sm text-red-600">{errors.address}</p>
+                        )}
                       </div>
-                      {errors.address && (
-                        <p className="mt-1 text-sm text-red-600">{errors.address}</p>
-                      )}
+
+                      <div>
+                        <label htmlFor="postalCode" className="block text-sm font-medium text-gray-700 mb-2">
+                          Código Postal
+                        </label>
+                        <input
+                          id="postalCode"
+                          name="postalCode"
+                          type="text"
+                          value={formData.postalCode}
+                          onChange={handleInputChange}
+                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                          placeholder="12345"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Selección de Rol */}
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Tipo de Cuenta</h3>
+                  <div className="grid md:grid-cols-3 gap-4">
+                    {/* Cliente */}
+                    <div 
+                      className={`relative cursor-pointer rounded-lg border p-4 transition-all duration-200 ${
+                        formData.role === 'customer' 
+                          ? 'border-primary-500 bg-primary-50 ring-2 ring-primary-500' 
+                          : 'border-gray-300 hover:border-gray-400'
+                      }`}
+                      onClick={() => setFormData(prev => ({ ...prev, role: 'customer' }))}
+                    >
+                      <input
+                        type="radio"
+                        name="role"
+                        value="customer"
+                        checked={formData.role === 'customer'}
+                        onChange={handleInputChange}
+                        className="sr-only"
+                      />
+                      <div className="flex flex-col items-center text-center">
+                        <UserGroupIcon className={`w-8 h-8 mb-2 ${
+                          formData.role === 'customer' ? 'text-primary-600' : 'text-gray-400'
+                        }`} />
+                        <h4 className="font-semibold text-gray-900">Cliente</h4>
+                        <p className="text-sm text-gray-600 mt-1">Compra productos y gestiona pedidos</p>
+                      </div>
                     </div>
 
-                    <div>
-                      <label htmlFor="postalCode" className="block text-sm font-medium text-gray-700 mb-2">
-                        Código Postal
-                      </label>
+                    {/* Conductor */}
+                    <div 
+                      className={`relative cursor-pointer rounded-lg border p-4 transition-all duration-200 ${
+                        formData.role === 'conductor' 
+                          ? 'border-primary-500 bg-primary-50 ring-2 ring-primary-500' 
+                          : 'border-gray-300 hover:border-gray-400'
+                      }`}
+                      onClick={() => setFormData(prev => ({ ...prev, role: 'conductor' }))}
+                    >
                       <input
-                        id="postalCode"
-                        name="postalCode"
-                        type="text"
-                        value={formData.postalCode}
+                        type="radio"
+                        name="role"
+                        value="conductor"
+                        checked={formData.role === 'conductor'}
                         onChange={handleInputChange}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                        placeholder="12345"
+                        className="sr-only"
                       />
+                      <div className="flex flex-col items-center text-center">
+                        <TruckIcon className={`w-8 h-8 mb-2 ${
+                          formData.role === 'conductor' ? 'text-primary-600' : 'text-gray-400'
+                        }`} />
+                        <h4 className="font-semibold text-gray-900">Conductor</h4>
+                        <p className="text-sm text-gray-600 mt-1">Realiza entregas y transportes</p>
+                      </div>
+                    </div>
+
+                    {/* Admin */}
+                    <div 
+                      className={`relative cursor-pointer rounded-lg border p-4 transition-all duration-200 ${
+                        formData.role === 'admin' 
+                          ? 'border-primary-500 bg-primary-50 ring-2 ring-primary-500' 
+                          : 'border-gray-300 hover:border-gray-400'
+                      }`}
+                      onClick={() => setFormData(prev => ({ ...prev, role: 'admin' }))}
+                    >
+                      <input
+                        type="radio"
+                        name="role"
+                        value="admin"
+                        checked={formData.role === 'admin'}
+                        onChange={handleInputChange}
+                        className="sr-only"
+                      />
+                      <div className="flex flex-col items-center text-center">
+                        <ShieldCheckIcon className={`w-8 h-8 mb-2 ${
+                          formData.role === 'admin' ? 'text-primary-600' : 'text-gray-400'
+                        }`} />
+                        <h4 className="font-semibold text-gray-900">Administrador</h4>
+                        <p className="text-sm text-gray-600 mt-1">Gestiona el sistema completo</p>
+                      </div>
                     </div>
                   </div>
                 </div>
+
+                {/* Campos adicionales para conductor */}
+                {formData.role === 'conductor' && (
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Información de Conductor</h3>
+                    <div className="grid md:grid-cols-2 gap-6">
+                      <div>
+                        <label htmlFor="cedula" className="block text-sm font-medium text-gray-700 mb-2">
+                          Cédula de Identidad *
+                        </label>
+                        <div className="relative">
+                          <input
+                            id="cedula"
+                            name="cedula"
+                            type="text"
+                            required
+                            value={formData.cedula}
+                            onChange={handleInputChange}
+                            className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary-500 transition-colors pl-11 ${
+                              errors.cedula ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : 'border-gray-300 focus:border-primary-500'
+                            }`}
+                            placeholder="123456789"
+                          />
+                          <IdentificationIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                        </div>
+                        {errors.cedula && (
+                          <p className="mt-1 text-sm text-red-600">{errors.cedula}</p>
+                        )}
+                      </div>
+
+                      <div>
+                        <label htmlFor="licencia" className="block text-sm font-medium text-gray-700 mb-2">
+                          Licencia de Conducir *
+                        </label>
+                        <div className="relative">
+                          <input
+                            id="licencia"
+                            name="licencia"
+                            type="text"
+                            required
+                            value={formData.licencia}
+                            onChange={handleInputChange}
+                            className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary-500 transition-colors pl-11 ${
+                              errors.licencia ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : 'border-gray-300 focus:border-primary-500'
+                            }`}
+                            placeholder="Ej: A1, B1, C1"
+                          />
+                          <TruckIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                        </div>
+                        {errors.licencia && (
+                          <p className="mt-1 text-sm text-red-600">{errors.licencia}</p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {/* Contraseñas */}
                 <div>

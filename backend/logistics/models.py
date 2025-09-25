@@ -3,6 +3,30 @@ from django.contrib.auth.models import User
 from django.core.validators import MinValueValidator, MaxValueValidator
 
 
+class Admin(models.Model):
+    """Modelo para administradores del sistema"""
+    user = models.OneToOneField(User, on_delete=models.CASCADE, verbose_name="Usuario")
+    nombre = models.CharField(max_length=200, verbose_name="Nombre")
+    email = models.EmailField(unique=True, verbose_name="Correo Electrónico")
+    telefono = models.CharField(max_length=20, verbose_name="Teléfono")
+    direccion = models.TextField(blank=True, verbose_name="Dirección")
+    nivel_acceso = models.CharField(max_length=20, choices=[
+        ('superadmin', 'Super Administrador'),
+        ('admin', 'Administrador'),
+        ('moderador', 'Moderador'),
+    ], default='admin', verbose_name="Nivel de Acceso")
+    fecha_contratacion = models.DateField(verbose_name="Fecha de Contratación")
+    activo = models.BooleanField(default=True, verbose_name="Activo")
+    
+    class Meta:
+        verbose_name = "Administrador"
+        verbose_name_plural = "Administradores"
+        ordering = ['nombre']
+    
+    def __str__(self):
+        return f"{self.nombre} - {self.get_nivel_acceso_display()}"
+
+
 class Cliente(models.Model):
     nombre = models.CharField(max_length=200, verbose_name="Nombre")
     email = models.EmailField(unique=True, verbose_name="Correo Electrónico")

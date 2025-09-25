@@ -2,19 +2,17 @@ import React, { useState, useEffect } from 'react';
 import {
   ShoppingCartIcon,
   MagnifyingGlassIcon,
-  AdjustmentsHorizontalIcon,
   StarIcon,
   HeartIcon,
   EyeIcon,
   ExclamationTriangleIcon
 } from '@heroicons/react/24/outline';
 import {
-  HeartIcon as HeartSolid,
-  ShoppingCartIcon as CartSolid
+  HeartIcon as HeartSolid
 } from '@heroicons/react/24/solid';
 import { useCart } from '../context/CartContext';
 import { useNavigate } from 'react-router-dom';
-import { productosAPI, categoriasAPI, carritoAPI } from '../services/apiService';
+import { productosAPI, categoriasAPI } from '../services/apiService';
 
 const ModernProducts = () => {
   const { addToCart, getCartItemsCount } = useCart();
@@ -69,7 +67,7 @@ const ModernProducts = () => {
 
     if (selectedCategory) {
       filtered = filtered.filter(producto => 
-        producto.categoria?.nombre?.toLowerCase() === selectedCategory.toLowerCase()
+        producto.categoria_nombre?.toLowerCase() === selectedCategory.toLowerCase()
       );
     }
 
@@ -87,12 +85,15 @@ const ModernProducts = () => {
 
   const handleAddToCart = async (producto) => {
     try {
-      // Agregar el producto al carrito en el backend
-      await carritoAPI.addItem(producto.id, 1);
-      // Actualizar el carrito en el estado local
-      addToCart(producto);
-      setShowNotification(true);
-      setTimeout(() => setShowNotification(false), 3000);
+      const success = await addToCart(producto, 1);
+      
+      if (success) {
+        setShowNotification(true);
+        setTimeout(() => setShowNotification(false), 3000);
+      } else {
+        alert('No se pudo agregar el producto al carrito. Intente de nuevo.');
+      }
+      
     } catch (error) {
       console.error('Error al agregar al carrito:', error);
       alert('No se pudo agregar el producto al carrito. Intente de nuevo.');
@@ -110,16 +111,17 @@ const ModernProducts = () => {
   };
 
   const formatPrice = (precio, descuento = 0) => {
+    const precioNum = Number(precio);
     if (descuento > 0) {
-      const precioFinal = precio * (1 - descuento / 100);
+      const precioFinal = precioNum * (1 - descuento / 100);
       return {
-        original: `$${precio.toFixed(2)}`,
-        final: `$${precioFinal.toFixed(2)}`,
+        original: `$${precioNum.toLocaleString('es-CO')}`,
+        final: `$${precioFinal.toLocaleString('es-CO')}`,
         hasDiscount: true
       };
     }
     return {
-      final: `$${precio.toFixed(2)}`,
+      final: `$${precioNum.toLocaleString('es-CO')}`,
       hasDiscount: false
     };
   };
@@ -230,12 +232,11 @@ const ModernProducts = () => {
         {!loading && !error && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {filteredProducts.map(producto => {
-            const priceInfo = formatPrice(producto.precio, producto.descuento);
             return (
               <div key={producto.id} className="card group cursor-pointer overflow-hidden">
                 <div className="relative">
                   <img
-                    src={producto.imagen || 'https://images.unsplash.com/photo-1571175443880-49e1d25b2bc5?w=500&h=400&fit=crop'}
+                    src={producto.imagen_url || 'https://images.unsplash.com/photo-1571175443880-49e1d25b2bc5?w=500&h=400&fit=crop'}
                     alt={producto.nombre}
                     className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
                     onError={(e) => {
@@ -244,7 +245,7 @@ const ModernProducts = () => {
                   />
                   
                   {/* Discount Badge */}
-                  {producto.descuento > 0 && (
+                  {(producto.descuento && producto.descuento > 0) && (
                     <div className="absolute top-3 left-3 bg-red-500 text-white px-2 py-1 rounded-lg text-sm font-semibold">
                       -{producto.descuento}%
                     </div>
@@ -282,7 +283,7 @@ const ModernProducts = () => {
                 <div className="p-6">
                   <div className="mb-2">
                     <span className="text-xs font-medium text-primary-600 bg-primary-100 px-2 py-1 rounded-full">
-                      {producto.categoria?.nombre || 'Sin categoría'}
+                      {producto.categoria_nombre || 'Sin categoría'}
                     </span>
                   </div>
                   
@@ -307,7 +308,7 @@ const ModernProducts = () => {
                   {/* Price */}
                   <div className="mb-4">
                     <span className="text-2xl font-bold text-primary-600">
-                      ${Number(producto.precio).toFixed(2)}
+                      ${Number(producto.precio).toLocaleString('es-CO')}
                     </span>
                   </div>
 

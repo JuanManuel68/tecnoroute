@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
-from .models import Cliente, Conductor, Vehiculo, Ruta, Envio, SeguimientoEnvio, PedidoTransporte
+from .models import Cliente, Conductor, Vehiculo, Ruta, Envio, SeguimientoEnvio, PedidoTransporte, Admin
 from user_management.models import UserProfile, Categoria, Producto, Carrito, CarritoItem, Pedido, PedidoItem
 
 
@@ -15,6 +15,13 @@ class ConductorSerializer(serializers.ModelSerializer):
     class Meta:
         model = Conductor
         fields = '__all__'
+
+
+class AdminSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Admin
+        fields = '__all__'
+        read_only_fields = ('fecha_contratacion',)
 
 
 class VehiculoSerializer(serializers.ModelSerializer):
@@ -98,21 +105,46 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
     password_confirm = serializers.CharField(write_only=True)
     telefono = serializers.CharField(required=False, allow_blank=True)
     direccion = serializers.CharField(required=False, allow_blank=True)
+    city = serializers.CharField(required=False, allow_blank=True)
+    role = serializers.ChoiceField(choices=['customer', 'conductor', 'admin'], default='customer')
+    
+    # Campos adicionales para conductor
+    cedula = serializers.CharField(required=False, allow_blank=True)
+    licencia = serializers.CharField(required=False, allow_blank=True)
     
     class Meta:
         model = User
-        fields = ['username', 'email', 'first_name', 'last_name', 'password', 'password_confirm', 'telefono', 'direccion']
+        fields = [
+            'username', 'email', 'first_name', 'last_name', 'password', 
+            'password_confirm', 'telefono', 'direccion', 'city', 'role',
+            'cedula', 'licencia'
+        ]
     
     def validate(self, data):
         if data['password'] != data['password_confirm']:
             raise serializers.ValidationError("Las contraseñas no coinciden.")
+        
+        # Validaciones específicas para conductor
+        if data.get('role') == 'conductor':
+            if not data.get('cedula'):
+                raise serializers.ValidationError("La cédula es requerida para conductores.")
+            if not data.get('licencia'):
+                raise serializers.ValidationError("La licencia es requerida para conductores.")
+        
         return data
     
     def create(self, validated_data):
+        from datetime import date
+        
         validated_data.pop('password_confirm')
         telefono = validated_data.pop('telefono', '')
         direccion = validated_data.pop('direccion', '')
+        city = validated_data.pop('city', '')
+        role = validated_data.pop('role', 'customer')
+        cedula = validated_data.pop('cedula', '')
+        licencia = validated_data.pop('licencia', '')
         
+        # Crear el usuario base
         user = User.objects.create_user(
             username=validated_data['username'],
             email=validated_data['email'],
@@ -121,12 +153,41 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
             password=validated_data['password']
         )
         
-        UserProfile.objects.create(
+        # Crear el perfil de usuario
+        user_profile = UserProfile.objects.create(
             user=user,
-            role='customer',
+            role=role,
             telefono=telefono,
-            direccion=direccion
+            direccion=direccion,
+            ciudad=city
         )
+        
+        # Crear registros específicos según el rol
+        full_name = f"{user.first_name} {user.last_name}".strip()
+        if not full_name:
+            full_name = user.username
+            
+        if role == 'conductor':
+            Conductor.objects.create(
+                nombre=full_name,
+                cedula=cedula,
+                licencia=licencia,
+                telefono=telefono,
+                email=user.email,
+                direccion=direccion,
+                fecha_contratacion=date.today(),
+                activo=True
+            )
+        elif role == 'admin':
+            Admin.objects.create(
+                user=user,
+                nombre=full_name,
+                email=user.email,
+                telefono=telefono,
+                direccion=direccion,
+                fecha_contratacion=date.today(),
+                activo=True
+            )
         
         return user
 
@@ -169,10 +230,21 @@ class PedidoItemSerializer(serializers.ModelSerializer):
 class PedidoSerializer(serializers.ModelSerializer):
     items = PedidoItemSerializer(many=True, read_only=True)
     usuario_nombre = serializers.CharField(source='usuario.get_full_name', read_only=True)
+    conductor_info = serializers.SerializerMethodField()
     
     class Meta:
         model = Pedido
         fields = '__all__'
+    
+    def get_conductor_info(self, obj):
+        if obj.conductor:
+            return {
+                'id': obj.conductor.id,
+                'nombre': obj.conductor.nombre,
+                'cedula': obj.conductor.cedula,
+                'telefono': obj.conductor.telefono
+            }
+        return None
 
 
 class PedidoTransporteSerializer(serializers.ModelSerializer):

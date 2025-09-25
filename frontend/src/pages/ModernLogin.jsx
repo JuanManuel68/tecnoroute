@@ -24,7 +24,7 @@ const ModernLogin = () => {
   const [searchParams] = useSearchParams();
   const loginType = searchParams.get('type'); // 'admin' o 'user'
 
-  const { login } = useAuth();
+  const { login, getDashboardRoute } = useAuth();
   const navigate = useNavigate();
 
   const handleInputChange = (e) => {
@@ -42,12 +42,7 @@ const ModernLogin = () => {
     
     if (result.success) {
       // Redirigir según el rol del usuario
-      const userData = JSON.parse(localStorage.getItem('user'));
-      if (userData.role === 'admin') {
-        navigate('/admin');
-      } else {
-        navigate('/productos');
-      }
+      navigate(getDashboardRoute());
     } else {
       setError(result.error);
     }

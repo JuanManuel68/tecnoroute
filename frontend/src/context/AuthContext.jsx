@@ -35,7 +35,7 @@ export const AuthProvider = ({ children }) => {
         return { success: false, error: 'Email y contraseña son requeridos' };
       }
 
-      // Intentar autenticación con la API de Django
+      // Autenticación con la API de Django
       try {
         // Convertir email a username si es necesario
         let username = email;
@@ -53,9 +53,13 @@ export const AuthProvider = ({ children }) => {
           
           const userData = {
             id: data.user.id,
-            name: data.user.first_name + ' ' + data.user.last_name,
+            name: (data.user.first_name + ' ' + data.user.last_name).trim(),
             email: data.user.email,
-            role: data.user.role
+            role: data.user.role,
+            // Incluir información del conductor si existe
+            ...(data.user.role === 'conductor' && data.conductor_info && {
+              conductor_info: data.conductor_info
+            })
           };
           
           setUser(userData);
@@ -68,29 +72,8 @@ export const AuthProvider = ({ children }) => {
           return { success: false, error: errorData.error || 'Credenciales inválidas' };
         }
       } catch (apiError) {
-        console.warn('API not available, using mock authentication:', apiError);
-        
-        // Fallback: usar credenciales por defecto cuando la API no esté disponible
-        // En producción, esto debería removerse
-        if ((email === 'admin@tecnoroute.com' && password === 'admin123') ||
-            (email === 'usuario@tecnoroute.com' && password === 'user123')) {
-          
-          const isAdmin = email === 'admin@tecnoroute.com';
-          const userData = {
-            id: isAdmin ? 1 : 2,
-            name: isAdmin ? 'Administrador' : 'Usuario Cliente',
-            email: email,
-            role: isAdmin ? 'admin' : 'user'
-          };
-          
-          setUser(userData);
-          localStorage.setItem('user', JSON.stringify(userData));
-          localStorage.setItem('authToken', 'mock-jwt-token');
-          
-          return { success: true };
-        } else {
-          return { success: false, error: 'Credenciales inválidas' };
-        }
+        console.error('Error conectando con el servidor:', apiError);
+        return { success: false, error: 'Error de conexión con el servidor. Verifique su conexión a internet.' };
       }
     } catch (error) {
       return { success: false, error: error.message };
@@ -118,13 +101,18 @@ export const AuthProvider = ({ children }) => {
               'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-              name: userData.name,
+              username: userData.email, // Usar email como username
               email: userData.email,
+              first_name: userData.name.split(' ')[0] || userData.name,
+              last_name: userData.name.split(' ').slice(1).join(' ') || '',
               password: userData.password,
-              phone: userData.phone || '',
-              address: userData.address || '',
+              password_confirm: userData.confirmPassword,
+              telefono: userData.phone || '',
+              direccion: userData.address || '',
               city: userData.city || '',
-              postalCode: userData.postalCode || ''
+              role: userData.role || 'customer',
+              cedula: userData.cedula || '',
+              licencia: userData.licencia || ''
             })
           });
 
@@ -135,9 +123,13 @@ export const AuthProvider = ({ children }) => {
             // Registro exitoso en backend
             const newUser = {
               id: responseData.user.id,
-              name: responseData.user.first_name + ' ' + responseData.user.last_name,
+              name: (responseData.user.first_name + ' ' + responseData.user.last_name).trim(),
               email: responseData.user.email,
-              role: responseData.user.role
+              role: responseData.user.role,
+              // Incluir información del conductor si existe
+              ...(responseData.user.role === 'conductor' && responseData.conductor_info && {
+                conductor_info: responseData.conductor_info
+              })
             };
             
             setUser(newUser);
@@ -150,24 +142,8 @@ export const AuthProvider = ({ children }) => {
             return { success: false, error: responseData.error || 'Error en el registro' };
           }
         } catch (apiError) {
-          console.error('Error conectando con backend:', apiError);
-          
-          // Fallback: registrar localmente si no hay conexión
-          const newUser = {
-            id: Date.now(),
-            name: userData.name,
-            email: userData.email,
-            phone: userData.phone,
-            address: userData.address,
-            city: userData.city,
-            role: 'customer'
-          };
-          
-          setUser(newUser);
-          localStorage.setItem('user', JSON.stringify(newUser));
-          localStorage.setItem('authToken', 'mock-jwt-token');
-          
-          return { success: true, message: 'Usuario registrado localmente (sin conexión al servidor)' };
+          console.error('Error conectando con el servidor:', apiError);
+          return { success: false, error: 'Error de conexión con el servidor. Verifique su conexión a internet.' };
         }
       } else {
         return { success: false, error: 'Nombre, email y contraseña son requeridos' };
@@ -195,7 +171,25 @@ export const AuthProvider = ({ children }) => {
   };
 
   const isUser = () => {
-    return user?.role === 'user';
+    return user?.role === 'user' || user?.role === 'customer';
+  };
+
+  const isConductor = () => {
+    return user?.role === 'conductor';
+  };
+
+  const getDashboardRoute = () => {
+    if (!user) return '/login';
+    
+    switch (user.role) {
+      case 'admin':
+        return '/admin/dashboard';
+      case 'conductor':
+        return '/conductor/dashboard';
+      case 'customer':
+      default:
+        return '/productos';
+    }
   };
 
   const value = {
@@ -207,7 +201,9 @@ export const AuthProvider = ({ children }) => {
     loading,
     isAuthenticated: !!user,
     isAdmin,
-    isUser
+    isUser,
+    isConductor,
+    getDashboardRoute
   };
 
   return (

@@ -218,6 +218,98 @@ def create_products():
             'stock': 20,
             'imagen_url': 'https://via.placeholder.com/400x400?text=Ventilador+Hunter',
             'activo': True
+        },
+        
+        # Productos adicionales para completar 16+
+        {
+            'nombre': 'Refrigerador Mabe 300L Frost Free',
+            'descripcion': 'Refrigerador Mabe de 300 litros con tecnología Frost Free, ideal para familias pequeñas.',
+            'categoria': categorias.get('Refrigeradores'),
+            'precio': Decimal('999000.00'),
+            'stock': 14,
+            'imagen_url': 'https://via.placeholder.com/400x400?text=Refrigerador+Mabe',
+            'activo': True
+        },
+        {
+            'nombre': 'Lavadora Secadora LG 15kg WashTower',
+            'descripcion': 'Lavadora y secadora apilable LG WashTower de 15kg con tecnología TurboWash y Steam.',
+            'categoria': categorias.get('Lavadoras'),
+            'precio': Decimal('2299000.00'),
+            'stock': 5,
+            'imagen_url': 'https://via.placeholder.com/400x400?text=LG+WashTower',
+            'activo': True
+        },
+        {
+            'nombre': 'Smart TV TCL 32" Android TV',
+            'descripcion': 'Smart TV TCL de 32 pulgadas con Android TV, Chromecast integrado y Google Assistant.',
+            'categoria': categorias.get('Televisores'),
+            'precio': Decimal('899000.00'),
+            'stock': 25,
+            'imagen_url': 'https://via.placeholder.com/400x400?text=TV+TCL+32',
+            'activo': True
+        },
+        {
+            'nombre': 'Freidora de Aire Ninja 5.5L',
+            'descripcion': 'Freidora de aire Ninja de 5.5 litros con 6 funciones de cocción y control digital.',
+            'categoria': categorias.get('Electrodomésticos Cocina'),
+            'precio': Decimal('459000.00'),
+            'stock': 20,
+            'imagen_url': 'https://via.placeholder.com/400x400?text=Freidora+Ninja',
+            'activo': True
+        },
+        {
+            'nombre': 'Cafetera Oster 12 Tazas Programable',
+            'descripcion': 'Cafetera Oster programable de 12 tazas con filtro permanente y función auto-apagado.',
+            'categoria': categorias.get('Electrodomésticos Cocina'),
+            'precio': Decimal('229000.00'),
+            'stock': 35,
+            'imagen_url': 'https://via.placeholder.com/400x400?text=Cafetera+Oster',
+            'activo': True
+        },
+        {
+            'nombre': 'Aire Acondicionado Carrier 24000 BTU',
+            'descripcion': 'Aire acondicionado Carrier tipo ventana de 24000 BTU, ideal para espacios grandes.',
+            'categoria': categorias.get('Aires Acondicionados'),
+            'precio': Decimal('1599000.00'),
+            'stock': 7,
+            'imagen_url': 'https://via.placeholder.com/400x400?text=AC+Carrier+24000',
+            'activo': True
+        },
+        {
+            'nombre': 'Lavaplatos Electrolux 14 Servicios',
+            'descripcion': 'Lavaplatos Electrolux empotrable para 14 servicios con 6 programas de lavado.',
+            'categoria': categorias.get('Electrodomésticos Cocina'),
+            'precio': Decimal('1899000.00'),
+            'stock': 8,
+            'imagen_url': 'https://via.placeholder.com/400x400?text=Lavaplatos+Electrolux',
+            'activo': True
+        },
+        {
+            'nombre': 'TV Samsung 75" QLED 4K',
+            'descripcion': 'Smart TV Samsung QLED de 75 pulgadas con tecnología Quantum Dot y HDR10+.',
+            'categoria': categorias.get('Televisores'),
+            'precio': Decimal('4299000.00'),
+            'stock': 3,
+            'imagen_url': 'https://via.placeholder.com/400x400?text=Samsung+QLED+75',
+            'activo': True
+        },
+        {
+            'nombre': 'Batidora KitchenAid Stand Mixer',
+            'descripcion': 'Batidora de pedestal KitchenAid con bowl de 4.8L, 10 velocidades y múltiples accesorios.',
+            'categoria': categorias.get('Electrodomésticos Cocina'),
+            'precio': Decimal('1299000.00'),
+            'stock': 12,
+            'imagen_url': 'https://via.placeholder.com/400x400?text=KitchenAid+Mixer',
+            'activo': True
+        },
+        {
+            'nombre': 'Refrigerador Side by Side Whirlpool 600L',
+            'descripcion': 'Refrigerador Whirlpool lado a lado de 600L con dispensador de agua y hielo.',
+            'categoria': categorias.get('Refrigeradores'),
+            'precio': Decimal('2799000.00'),
+            'stock': 6,
+            'imagen_url': 'https://via.placeholder.com/400x400?text=Whirlpool+SideBySide',
+            'activo': True
         }
     ]
     

@@ -14,7 +14,8 @@ import ModernProducts from './pages/ModernProducts';
 import ModernCart from './pages/ModernCart';
 import ModernProfile from './pages/ModernProfile';
 import ModernCheckout from './pages/ModernCheckout';
-import Orders from './pages/Orders';
+import ModernOrders from './pages/ModernOrders';
+import OrdersDebug from './components/OrdersDebug';
 import PedidosAdmin from './pages/PedidosAdmin';
 import ModernDashboard from './pages/ModernDashboard';
 import Clientes from './pages/Clientes';
@@ -23,6 +24,7 @@ import Vehiculos from './pages/Vehiculos';
 import Rutas from './pages/Rutas';
 import Envios from './pages/Envios';
 import SeguimientoEnvio from './pages/SeguimientoEnvio';
+import ConductorDashboard from './pages/ConductorDashboard';
 
 const theme = createTheme({
   palette: {
@@ -78,9 +80,24 @@ const AdminRoute = ({ children }) => {
   return isAdmin() ? children : <Navigate to="/productos" replace />;
 };
 
+// Componente para rutas protegidas de conductor
+const ConductorRoute = ({ children }) => {
+  const { isAuthenticated, isConductor, loading } = useAuth();
+  
+  if (loading) {
+    return <div>Cargando...</div>;
+  }
+  
+  if (!isAuthenticated) {
+    return <Navigate to="/login?type=conductor" replace />;
+  }
+  
+  return isConductor() ? children : <Navigate to="/productos" replace />;
+};
+
 // Componente principal de la aplicación
 const AppContent = () => {
-  const { isAuthenticated, isAdmin, loading } = useAuth();
+  const { isAuthenticated, isAdmin, isConductor, loading } = useAuth();
   
   if (loading) {
     return <div>Cargando aplicación...</div>;
@@ -89,13 +106,13 @@ const AppContent = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Mostrar navbar según el estado de autenticación */}
-      {isAuthenticated && isAdmin() ? (
+      {isAuthenticated && (isAdmin() || isConductor()) ? (
         <ModernNavbar />
       ) : (
         <ModernPublicNavbar />
       )}
       
-      <main className={`${isAuthenticated && isAdmin() ? 'pt-0' : 'pt-16'} min-h-screen`}>
+      <main className={`${isAuthenticated && (isAdmin() || isConductor()) ? 'pt-0' : 'pt-16'} min-h-screen`}>
         <Routes>
           {/* Rutas públicas */}
           <Route path="/" element={<Home />} />
@@ -104,11 +121,15 @@ const AppContent = () => {
             path="/login" 
             element={
               isAuthenticated ? (
-                isAdmin() ? <Navigate to="/admin" replace /> : <Navigate to="/productos" replace />
+                <Navigate to={
+                  isAdmin() ? "/admin/dashboard" : 
+                  isConductor() ? "/conductor/dashboard" : 
+                  "/productos"
+                } replace />
               ) : (
                 <ModernLogin />
               )
-            } 
+            }
           />
           <Route 
             path="/register" 
@@ -138,12 +159,29 @@ const AppContent = () => {
           } />
           <Route path="/orders" element={
             <UserRoute>
-              <Orders />
+              <ModernOrders />
             </UserRoute>
+          } />
+          <Route path="/debug-orders" element={
+            <UserRoute>
+              <OrdersDebug />
+            </UserRoute>
+          } />
+          
+          {/* Rutas de conductor */}
+          <Route path="/conductor/dashboard" element={
+            <ConductorRoute>
+              <ConductorDashboard />
+            </ConductorRoute>
           } />
           
           {/* Rutas de administrador */}
           <Route path="/admin" element={
+            <AdminRoute>
+              <Navigate to="/admin/dashboard" replace />
+            </AdminRoute>
+          } />
+          <Route path="/admin/dashboard" element={
             <AdminRoute>
               <ModernDashboard />
             </AdminRoute>

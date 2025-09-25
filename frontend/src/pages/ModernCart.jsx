@@ -11,8 +11,22 @@ import { useCart } from '../context/CartContext';
 import { useNavigate } from 'react-router-dom';
 
 const ModernCart = () => {
-  const { cartItems, removeFromCart, updateQuantity, getCartTotal, clearCart } = useCart();
+  const { cartItems, removeFromCart, updateQuantity, getCartTotal, clearCart, loading, error } = useCart();
   const navigate = useNavigate();
+  
+  const handleUpdateQuantity = async (productId, newQuantity) => {
+    await updateQuantity(productId, newQuantity);
+  };
+  
+  const handleRemoveFromCart = async (productId) => {
+    await removeFromCart(productId);
+  };
+  
+  const handleClearCart = async () => {
+    if (window.confirm('¿Estás seguro de que quieres vaciar el carrito?')) {
+      await clearCart();
+    }
+  };
 
   if (cartItems.length === 0) {
     return (
@@ -39,7 +53,7 @@ const ModernCart = () => {
     );
   }
 
-  const formatPrice = (price) => `$${price.toFixed(2)}`;
+  const formatPrice = (price) => `$${Number(price).toLocaleString('es-CO')}`;
 
   return (
     <div className="min-h-screen bg-gray-50 pt-20 pb-12">
@@ -47,6 +61,18 @@ const ModernCart = () => {
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-gray-900 mb-2">Mi Carrito</h1>
           <p className="text-gray-600">Revisa y modifica tu selección de productos</p>
+          
+          {error && (
+            <div className="mt-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+              <p>{error}</p>
+              <button 
+                onClick={() => window.location.reload()} 
+                className="mt-2 text-sm underline hover:no-underline"
+              >
+                Recargar página
+              </button>
+            </div>
+          )}
         </div>
 
         <div className="grid lg:grid-cols-3 gap-8">
@@ -57,7 +83,7 @@ const ModernCart = () => {
                 <div className="flex items-center space-x-4">
                   <div className="flex-shrink-0">
                     <img
-                      src={item.imagen}
+                      src={item.imagen_url || 'https://images.unsplash.com/photo-1571175443880-49e1d25b2bc5?w=500&h=400&fit=crop'}
                       alt={item.nombre}
                       className="w-20 h-20 object-cover rounded-lg"
                     />
@@ -67,7 +93,7 @@ const ModernCart = () => {
                     <h3 className="text-lg font-semibold text-gray-900 mb-1">
                       {item.nombre}
                     </h3>
-                    <p className="text-sm text-gray-600 mb-2">{item.marca}</p>
+                    <p className="text-sm text-gray-600 mb-2">{item.categoria_nombre || 'Producto'}</p>
                     <p className="text-lg font-bold text-primary-600">
                       {formatPrice(item.precio)}
                     </p>
@@ -75,8 +101,9 @@ const ModernCart = () => {
 
                   <div className="flex items-center space-x-3">
                     <button
-                      onClick={() => updateQuantity(item.id, Math.max(0, item.quantity - 1))}
-                      className="p-1 rounded-full hover:bg-gray-100 text-gray-500 hover:text-gray-700"
+                      onClick={() => handleUpdateQuantity(item.id, Math.max(0, item.quantity - 1))}
+                      className="p-1 rounded-full hover:bg-gray-100 text-gray-500 hover:text-gray-700 disabled:opacity-50"
+                      disabled={loading}
                     >
                       <MinusIcon className="w-5 h-5" />
                     </button>
@@ -86,8 +113,9 @@ const ModernCart = () => {
                     </span>
                     
                     <button
-                      onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                      className="p-1 rounded-full hover:bg-gray-100 text-gray-500 hover:text-gray-700"
+                      onClick={() => handleUpdateQuantity(item.id, item.quantity + 1)}
+                      className="p-1 rounded-full hover:bg-gray-100 text-gray-500 hover:text-gray-700 disabled:opacity-50"
+                      disabled={loading}
                     >
                       <PlusIcon className="w-5 h-5" />
                     </button>
@@ -98,8 +126,9 @@ const ModernCart = () => {
                       {formatPrice(item.precio * item.quantity)}
                     </p>
                     <button
-                      onClick={() => removeFromCart(item.id)}
-                      className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                      onClick={() => handleRemoveFromCart(item.id)}
+                      className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
+                      disabled={loading}
                       title="Eliminar producto"
                     >
                       <TrashIcon className="w-5 h-5" />
@@ -170,10 +199,11 @@ const ModernCart = () => {
             {cartItems.length > 1 && (
               <div className="card p-6">
                 <button
-                  onClick={clearCart}
-                  className="w-full py-2 px-4 border border-red-300 text-red-700 rounded-lg hover:bg-red-50 transition-colors font-medium"
+                  onClick={handleClearCart}
+                  className="w-full py-2 px-4 border border-red-300 text-red-700 rounded-lg hover:bg-red-50 transition-colors font-medium disabled:opacity-50"
+                  disabled={loading}
                 >
-                  Vaciar Carrito
+                  {loading ? 'Vaciando...' : 'Vaciar Carrito'}
                 </button>
               </div>
             )}

@@ -80,7 +80,7 @@ class CarritoItem(models.Model):
 class Pedido(models.Model):
     ESTADOS_PEDIDO = [
         ('pendiente', 'Pendiente'),
-        ('procesando', 'Procesando'),
+        ('confirmado', 'Confirmado'),
         ('enviado', 'Enviado'),
         ('entregado', 'Entregado'),
         ('cancelado', 'Cancelado'),
@@ -93,6 +93,9 @@ class Pedido(models.Model):
     telefono_contacto = models.CharField(max_length=15)
     notas = models.TextField(blank=True)
     estado = models.CharField(max_length=12, choices=ESTADOS_PEDIDO, default='pendiente')
+    # Agregar referencia al conductor
+    conductor = models.ForeignKey('logistics.Conductor', on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Conductor Asignado")
+    fecha_asignacion = models.DateTimeField(null=True, blank=True, verbose_name="Fecha de Asignación")
     fecha_creacion = models.DateTimeField(auto_now_add=True)
     fecha_actualizacion = models.DateTimeField(auto_now=True)
 

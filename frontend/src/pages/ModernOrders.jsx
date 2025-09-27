@@ -9,7 +9,10 @@ import {
   MapPinIcon,
   PhoneIcon,
   CreditCardIcon,
-  DocumentTextIcon
+  DocumentTextIcon,
+  PencilIcon,
+  TrashIcon,
+  ExclamationTriangleIcon
 } from '@heroicons/react/24/outline';
 import {
   CheckCircleIcon as CheckCircleIconSolid,
@@ -18,15 +21,24 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { pedidosAPI } from '../services/apiService';
+import { useToast } from '../components/Toast';
+import EditOrderModal from '../components/EditOrderModal';
 
 const ModernOrders = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { showToast, ToastContainer } = useToast();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [showModal, setShowModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [orderToDelete, setOrderToDelete] = useState(null);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [orderToEdit, setOrderToEdit] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
 
   useEffect(() => {
     const loadOrders = async () => {
@@ -146,6 +158,77 @@ const ModernOrders = () => {
       hour: '2-digit',
       minute: '2-digit'
     });
+  };
+
+  // Función para eliminar pedido
+  const handleDeleteOrder = async (orderId) => {
+    try {
+      setIsDeleting(true);
+      await pedidosAPI.delete(orderId);
+      
+      // Actualizar la lista de pedidos
+      setOrders(prevOrders => prevOrders.filter(order => order.id !== orderId));
+      setShowDeleteModal(false);
+      setOrderToDelete(null);
+      
+      // Mostrar mensaje de éxito
+      showToast('Pedido eliminado exitosamente', 'success');
+    } catch (error) {
+      console.error('Error eliminando pedido:', error);
+      const errorMessage = error.response?.data?.error || 'Error al eliminar el pedido. Intenta de nuevo.';
+      showToast(errorMessage, 'error');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  // Función para abrir modal de confirmación de eliminación
+  const confirmDeleteOrder = (order) => {
+    setOrderToDelete(order);
+    setShowDeleteModal(true);
+  };
+
+  // Función para abrir modal de edición
+  const handleEditOrder = (order) => {
+    setOrderToEdit(order);
+    setShowEditModal(true);
+  };
+
+  // Función para guardar cambios del pedido
+  const handleSaveOrderChanges = async (formData) => {
+    if (!orderToEdit) return;
+    
+    try {
+      setIsUpdating(true);
+      
+      const response = await pedidosAPI.update(orderToEdit.id, formData);
+      
+      // Actualizar el pedido en la lista local
+      setOrders(prevOrders => 
+        prevOrders.map(order => 
+          order.id === orderToEdit.id 
+            ? { ...order, ...formData }
+            : order
+        )
+      );
+      
+      // Cerrar modal y mostrar mensaje de éxito
+      setShowEditModal(false);
+      setOrderToEdit(null);
+      showToast('Pedido actualizado exitosamente', 'success');
+      
+    } catch (error) {
+      console.error('Error actualizando pedido:', error);
+      const errorMessage = error.response?.data?.error || 'Error al actualizar el pedido. Intenta de nuevo.';
+      showToast(errorMessage, 'error');
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  // Función para verificar si un pedido se puede editar/eliminar
+  const canEditOrDelete = (order) => {
+    return order.estado?.toLowerCase() === 'pendiente';
   };
 
   if (loading) {
@@ -442,6 +525,39 @@ const ModernOrders = () => {
                             <span>Ver Detalles Completos</span>
                           </button>
                           
+                          {/* Botones de editar y eliminar solo para pedidos pendientes */}
+                          {canEditOrDelete(order) && (
+                            <>
+                              <button
+                                onClick={() => handleEditOrder(order)}
+                                className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-semibold py-2 px-4 rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 flex items-center justify-center space-x-2"
+                              >
+                                <PencilIcon className="w-4 h-4" />
+                                <span>Editar Pedido</span>
+                              </button>
+                              <button
+                                onClick={() => confirmDeleteOrder(order)}
+                                className="w-full bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-semibold py-2 px-4 rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 flex items-center justify-center space-x-2"
+                              >
+                                <TrashIcon className="w-4 h-4" />
+                                <span>Eliminar Pedido</span>
+                              </button>
+                            </>
+                          )}
+                          
+                          {/* Mensaje informativo para pedidos que no se pueden editar */}
+                          {!canEditOrDelete(order) && (
+                            <div className="bg-gray-100 rounded-xl p-3 text-center">
+                              <p className="text-sm text-gray-600">
+                                <ExclamationTriangleIcon className="w-4 h-4 inline mr-1" />
+                                Este pedido no se puede editar
+                              </p>
+                              <p className="text-xs text-gray-500 mt-1">
+                                Solo los pedidos pendientes pueden ser modificados
+                              </p>
+                            </div>
+                          )}
+                          
                           {order.estado === 'entregado' && (
                             <div className="flex items-center justify-center space-x-2 text-sm text-gray-600">
                               <div className="flex items-center space-x-1">
@@ -491,7 +607,7 @@ const ModernOrders = () => {
               </div>
             </div>
             
-            <div className="max-h-[calc(90vh-120px)] overflow-y-auto">
+            <div className="max-h-[calc(90vh-120px)] overflow-y-auto modal-scrollbar smooth-scroll">
             
             <div className="p-6 space-y-6">
               {/* Información del pedido */}
@@ -599,6 +715,72 @@ const ModernOrders = () => {
           </div>
         </div>
       )}
+      
+      {/* Modal de confirmación de eliminación */}
+      {showDeleteModal && orderToDelete && (
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl max-w-md w-full shadow-2xl">
+            <div className="p-6">
+              <div className="flex items-center justify-center w-16 h-16 mx-auto bg-red-100 rounded-full mb-4">
+                <ExclamationTriangleIcon className="w-8 h-8 text-red-600" />
+              </div>
+              
+              <h3 className="text-xl font-bold text-gray-900 text-center mb-2">
+                ¿Eliminar pedido?
+              </h3>
+              <p className="text-gray-600 text-center mb-6">
+                Esta acción no se puede deshacer. Se eliminará permanentemente el pedido 
+                <strong>#{orderToDelete.numero_pedido}</strong>
+              </p>
+              
+              <div className="flex space-x-3">
+                <button
+                  onClick={() => {
+                    setShowDeleteModal(false);
+                    setOrderToDelete(null);
+                  }}
+                  className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-3 px-4 rounded-xl transition-colors"
+                  disabled={isDeleting}
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={() => handleDeleteOrder(orderToDelete.id)}
+                  disabled={isDeleting}
+                  className="flex-1 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-semibold py-3 px-4 rounded-xl transition-all flex items-center justify-center space-x-2 disabled:opacity-50"
+                >
+                  {isDeleting ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      <span>Eliminando...</span>
+                    </>
+                  ) : (
+                    <>
+                      <TrashIcon className="w-4 h-4" />
+                      <span>Sí, eliminar</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Modal de edición */}
+      <EditOrderModal
+        order={orderToEdit}
+        isOpen={showEditModal}
+        onClose={() => {
+          setShowEditModal(false);
+          setOrderToEdit(null);
+        }}
+        onSave={handleSaveOrderChanges}
+        isLoading={isUpdating}
+      />
+      
+      {/* Toast Container */}
+      <ToastContainer />
     </div>
   );
 };

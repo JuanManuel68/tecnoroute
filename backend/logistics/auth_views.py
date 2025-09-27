@@ -447,6 +447,97 @@ class PedidoViewSet(viewsets.ModelViewSet):
         serializer = PedidoSerializer(pedido)
         return Response(serializer.data)
 
+    def update(self, request, *args, **kwargs):
+        """Actualizar pedido - solo permitido en estado pendiente"""
+        pedido = self.get_object()
+        
+        # Solo el propietario del pedido puede editarlo (excepto admins)
+        user_profile = getattr(request.user, 'userprofile', None)
+        if not user_profile:
+            return Response({'error': 'Usuario no tiene perfil'}, status=status.HTTP_403_FORBIDDEN)
+        
+        # Verificar si es el propietario o admin
+        if user_profile.role != 'admin' and pedido.usuario != request.user:
+            return Response({'error': 'No autorizado para editar este pedido'}, status=status.HTTP_403_FORBIDDEN)
+        
+        # Solo se pueden editar pedidos en estado pendiente
+        if pedido.estado.lower() != 'pendiente':
+            return Response({
+                'error': f'No se puede editar un pedido en estado "{pedido.estado}". Solo los pedidos pendientes pueden ser editados.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Campos editables
+        direccion_envio = request.data.get('direccion_envio')
+        telefono_contacto = request.data.get('telefono_contacto')
+        notas = request.data.get('notas', '')
+        
+        # Validaciones
+        if not direccion_envio or not direccion_envio.strip():
+            return Response({'error': 'La dirección de envío es obligatoria'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        if not telefono_contacto or not telefono_contacto.strip():
+            return Response({'error': 'El teléfono de contacto es obligatorio'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        if len(direccion_envio.strip()) < 10:
+            return Response({'error': 'La dirección debe tener al menos 10 caracteres'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            # Actualizar campos
+            pedido.direccion_envio = direccion_envio.strip()
+            pedido.telefono_contacto = telefono_contacto.strip()
+            pedido.notas = notas.strip()
+            pedido.save()
+            
+            serializer = PedidoSerializer(pedido)
+            return Response({
+                'message': 'Pedido actualizado exitosamente',
+                'pedido': serializer.data
+            })
+            
+        except Exception as e:
+            return Response({
+                'error': f'Error actualizando pedido: {str(e)}'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    def destroy(self, request, *args, **kwargs):
+        """Eliminar pedido - solo permitido en estado pendiente"""
+        pedido = self.get_object()
+        
+        # Solo el propietario del pedido puede eliminarlo (excepto admins)
+        user_profile = getattr(request.user, 'userprofile', None)
+        if not user_profile:
+            return Response({'error': 'Usuario no tiene perfil'}, status=status.HTTP_403_FORBIDDEN)
+        
+        # Verificar si es el propietario o admin
+        if user_profile.role != 'admin' and pedido.usuario != request.user:
+            return Response({'error': 'No autorizado para eliminar este pedido'}, status=status.HTTP_403_FORBIDDEN)
+        
+        # Solo se pueden eliminar pedidos en estado pendiente
+        if pedido.estado.lower() != 'pendiente':
+            return Response({
+                'error': f'No se puede eliminar un pedido en estado "{pedido.estado}". Solo los pedidos pendientes pueden ser eliminados.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            with transaction.atomic():
+                # Restaurar stock de los productos antes de eliminar
+                for item in pedido.items.all():
+                    producto = item.producto
+                    producto.stock += item.cantidad
+                    producto.save()
+                
+                # Eliminar el pedido (esto también eliminará los items por CASCADE)
+                pedido.delete()
+                
+                return Response({
+                    'message': 'Pedido eliminado exitosamente y stock restaurado'
+                }, status=status.HTTP_204_NO_CONTENT)
+                
+        except Exception as e:
+            return Response({
+                'error': f'Error eliminando pedido: {str(e)}'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
     @action(detail=False, methods=['get'])
     def estadisticas(self, request):
         """Obtener estadísticas de pedidos"""

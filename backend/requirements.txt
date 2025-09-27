@@ -3,7 +3,6 @@ Django==4.2.24
 django-cors-headers==4.7.0
 django-filter==25.1
 djangorestframework==3.16.1
-mysqlclient==2.2.7
 python-decouple==3.8
 sqlparse==0.5.3
 tzdata==2025.2

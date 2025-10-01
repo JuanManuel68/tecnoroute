@@ -106,7 +106,7 @@ export const AuthProvider = ({ children }) => {
               first_name: userData.name.split(' ')[0] || userData.name,
               last_name: userData.name.split(' ').slice(1).join(' ') || '',
               password: userData.password,
-              password_confirm: userData.confirmPassword,
+              password_confirm: userData.confirmPassword || userData.password,
               telefono: userData.phone || '',
               direccion: userData.address || '',
               city: userData.city || '',

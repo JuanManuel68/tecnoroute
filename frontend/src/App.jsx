@@ -26,6 +26,7 @@ import Rutas from './pages/Rutas';
 import Envios from './pages/Envios';
 import SeguimientoEnvio from './pages/SeguimientoEnvio';
 import ConductorDashboard from './pages/ConductorDashboard';
+import DriverOrders from './components/DriverOrders';
 
 const theme = createTheme({
   palette: {
@@ -134,7 +135,17 @@ const AppContent = () => {
           />
           <Route 
             path="/register" 
-            element={isAuthenticated ? <Navigate to="/productos" replace /> : <ModernRegister />} 
+            element={
+              isAuthenticated ? (
+                <Navigate to={
+                  isAdmin() ? "/admin/dashboard" : 
+                  isConductor() ? "/conductor/dashboard" : 
+                  "/productos"
+                } replace />
+              ) : (
+                <ModernRegister />
+              )
+            } 
           />
           
           {/* Rutas de usuario (tienda) */}
@@ -173,6 +184,11 @@ const AppContent = () => {
           <Route path="/conductor/dashboard" element={
             <ConductorRoute>
               <ConductorDashboard />
+            </ConductorRoute>
+          } />
+          <Route path="/conductor/pedidos" element={
+            <ConductorRoute>
+              <DriverOrders />
             </ConductorRoute>
           } />
           

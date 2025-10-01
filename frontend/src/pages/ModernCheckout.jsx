@@ -627,10 +627,10 @@ const ModernCheckout = () => {
               <button
                 onClick={handleSubmit}
                 disabled={isProcessing}
-                className={`w-full mt-6 flex items-center justify-center space-x-2 px-6 py-3 rounded-lg font-medium transition-all duration-200 ${
+                className={`w-full mt-6 flex items-center justify-center space-x-2 ${
                   isProcessing
-                    ? 'bg-gray-400 cursor-not-allowed text-white'
-                    : 'bg-primary-600 hover:bg-primary-700 text-white shadow-lg hover:shadow-xl transform hover:scale-105'
+                    ? 'bg-gray-400 cursor-not-allowed text-white px-6 py-3 rounded-lg font-medium transition-all duration-200'
+                    : 'btn-primary'
                 }`}
               >
                 {isProcessing ? (

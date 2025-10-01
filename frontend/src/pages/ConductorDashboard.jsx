@@ -30,28 +30,15 @@ const ConductorDashboard = () => {
       setLoading(true);
       setError(null);
       
-      const response = await pedidosAPI.getAll();
-      // Filtrar solo pedidos pendientes
-      const pending = response.data.filter(order => order.estado === 'pendiente');
-      setPendingOrders(pending);
+      // Cargar pedidos pendientes
+      const pendingResponse = await pedidosAPI.getPendientes();
+      setPendingOrders(pendingResponse.data);
       
-      // Verificar si hay pedido activo para este conductor
-      const confirmed = response.data.find(order => {
-        if (order.estado === 'confirmado') {
-          // Si no hay información del conductor, verificar por usuario
-          if (user?.conductor_info?.id) {
-            return order.conductor_info && 
-                   order.conductor_info.id === user.conductor_info.id;
-          } else {
-            // Fallback: verificar por ID de usuario
-            return order.conductor_info && 
-                   order.conductor_info.user_id === user?.id;
-          }
-        }
-        return false;
-      });
-      if (confirmed) {
-        setActiveOrder(confirmed);
+      // Cargar mis pedidos (pedidos asignados al conductor)
+      const myOrdersResponse = await pedidosAPI.getMisPedidos();
+      const activeOrder = myOrdersResponse.data.find(order => order.estado === 'en_curso');
+      if (activeOrder) {
+        setActiveOrder(activeOrder);
       }
     } catch (error) {
       console.error('Error loading orders:', error);
@@ -59,7 +46,7 @@ const ConductorDashboard = () => {
     } finally {
       setLoading(false);
     }
-  }, [user?.conductor_info?.id, user?.id]);
+  }, []);
 
   useEffect(() => {
     console.log('Usuario conductor:', user);
@@ -76,17 +63,19 @@ const ConductorDashboard = () => {
     try {
       setAssigningOrder(order.id);
       
-      // Cambiar estado del pedido a confirmado y asignar conductor
-      await pedidosAPI.cambiarEstado(order.id, 'confirmado');
+      // Usar la API específica para tomar pedidos
+      const response = await pedidosAPI.tomarPedido(order.id);
+      
+      // Mostrar mensaje de éxito
+      alert(response.data.message || 'Pedido tomado exitosamente');
       
       // Actualizar estado local
       setActiveOrder({
         ...order,
-        estado: 'confirmado',
-        conductor_info: user?.conductor_info || {
+        estado: 'en_curso',
+        conductor: user?.conductor_info || {
           id: user?.id,
-          user_id: user?.id,
-          name: user?.name
+          nombre: user?.name
         }
       });
       
@@ -95,7 +84,8 @@ const ConductorDashboard = () => {
       
     } catch (error) {
       console.error('Error taking order:', error);
-      alert('Error al tomar el pedido. Intente de nuevo.');
+      const errorMsg = error.response?.data?.error || 'Error al tomar el pedido. Intente de nuevo.';
+      alert(errorMsg);
     } finally {
       setAssigningOrder(null);
     }
@@ -105,6 +95,10 @@ const ConductorDashboard = () => {
   const handleCompleteOrder = async () => {
     if (!activeOrder) return;
     
+    if (!window.confirm('¿Confirmas que has entregado este pedido?')) {
+      return;
+    }
+    
     try {
       await pedidosAPI.cambiarEstado(activeOrder.id, 'entregado');
       setActiveOrder(null);
@@ -112,21 +106,13 @@ const ConductorDashboard = () => {
       alert('¡Pedido completado exitosamente!');
     } catch (error) {
       console.error('Error completing order:', error);
-      alert('Error al completar el pedido. Intente de nuevo.');
+      const errorMsg = error.response?.data?.error || 'Error al completar el pedido. Intente de nuevo.';
+      alert(errorMsg);
     }
   };
 
   const formatPrice = (price) => `$${Number(price).toLocaleString('es-CO')}`;
-
-  const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('es-CO', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
+  const formatDate = (dateString) => new Date(dateString).toLocaleDateString('es-CO', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 
   // Función para abrir Google Maps con la dirección
   const openGoogleMaps = (address) => {

@@ -159,6 +159,9 @@ export const pedidosAPI = {
   update: (id, data) => apiService.patch(`${API_ENDPOINTS.pedidos}${id}/`, data),
   delete: (id) => apiService.delete(`${API_ENDPOINTS.pedidos}${id}/`),
   cambiarEstado: (id, estado) => apiService.patch(`${API_ENDPOINTS.pedidos}${id}/cambiar_estado/`, { estado }),
+  tomarPedido: (id) => apiService.post(`${API_ENDPOINTS.pedidos}${id}/tomar_pedido/`),
+  getPendientes: () => apiService.get(`${API_ENDPOINTS.pedidos}pendientes/`),
+  getMisPedidos: () => apiService.get(`${API_ENDPOINTS.pedidos}mis_pedidos/`),
   getEstadisticas: () => apiService.get(API_ENDPOINTS.pedidosEstadisticas),
   getRecientes: (limit = 10) => apiService.get(`${API_ENDPOINTS.pedidosRecientes}?limit=${limit}`),
 };

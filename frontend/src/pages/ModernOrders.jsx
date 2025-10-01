@@ -146,19 +146,8 @@ const ModernOrders = () => {
     }
   };
 
-  const formatPrice = (price) => {
-    return `$${Number(price).toLocaleString('es-CO')}`;
-  };
-
-  const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('es-CO', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
+  const formatPrice = (price) => `$${Number(price).toLocaleString('es-CO')}`;
+  const formatDate = (dateString) => new Date(dateString).toLocaleDateString('es-CO', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 
   // Función para eliminar pedido
   const handleDeleteOrder = async (orderId) => {

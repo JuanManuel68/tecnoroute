@@ -308,7 +308,7 @@ const ModernProducts = () => {
                   {/* Price */}
                   <div className="mb-4">
                     <span className="text-2xl font-bold text-primary-600">
-                      ${Number(producto.precio).toLocaleString('es-CO')}
+                      {formatPrice(producto.precio).final}
                     </span>
                   </div>
 
@@ -316,10 +316,10 @@ const ModernProducts = () => {
                   <button
                     onClick={() => handleAddToCart(producto)}
                     disabled={producto.stock === 0}
-                    className={`w-full py-3 px-4 rounded-lg font-medium transition-all duration-200 flex items-center justify-center space-x-2 ${
+                    className={`w-full flex items-center justify-center space-x-2 ${
                       producto.stock === 0
-                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                        : 'bg-primary-600 hover:bg-primary-700 text-white transform hover:scale-105 shadow-lg hover:shadow-xl'
+                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed py-3 px-4 rounded-lg font-medium transition-all duration-200'
+                        : 'btn-primary'
                     }`}
                   >
                     <ShoppingCartIcon className="w-5 h-5" />

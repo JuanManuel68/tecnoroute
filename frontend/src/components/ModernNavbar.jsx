@@ -10,9 +10,7 @@ import {
   Bars3Icon,
   XMarkIcon,
   ChevronDownIcon,
-  ArrowRightOnRectangleIcon,
-  ClockIcon,
-  BuildingOfficeIcon
+  ArrowRightOnRectangleIcon
 } from '@heroicons/react/24/outline';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -73,10 +71,8 @@ const ModernNavbar = () => {
 
   const conductorMenuItems = [
     { label: 'Dashboard', path: '/conductor/dashboard', icon: ChartBarIcon, category: 'main' },
-    { label: 'Mis Entregas', path: '/conductor/dashboard', icon: TruckIcon, category: 'main' },
   ];
 
-  const menuItems = isAdmin() ? adminMenuItems : conductorMenuItems;
 
   const adminMenuCategories = {
     main: { label: 'Principal', items: adminMenuItems.filter(item => item.category === 'main') },
